@@ -1,114 +1,122 @@
 import {defs, tiny} from './examples/common.js';
-import { Body, Simulation} from './physics.js';
+import {Body, Simulation} from './physics.js';
+import {Kart} from './kart.js';
+import {World} from './world.js';
 
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
 
+// Globally initialize the needed shapes and materials for use
 
-export class Main extends Simulation {
+// Load all necessary shapes onto the GPU
+globalThis.globalShapes = {
+    cube: new defs.Cube()
+}
+
+// Load all needed materials
+globalThis.globalMaterials = {
+    default: new Material(new defs.Phong_Shader())
+}
+
+
+/**
+ * The BruinKart class comprises of a Mario Kart Simulation.
+ * 
+ * this.kart = The Kart body, which can respond to user inputs and collisions.
+ * this.shapes = Generic Shapes that can be used
+ * this.world = A JSON object of elements and their transform/material information.
+ * -- The Kart can collide with certain portions of the world.
+ * 
+ * The Kart object has its own body, an internal shape, and is 
+ */
+
+export class BruinKart extends Simulation {
     constructor() {
         super();
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 20, -50), vec3(0, 0, 0), vec3(0, 1, 0));
+        this.initial_camera_location = Mat4.look_at(
+            vec3(0, 20, -50), // Initial Camera position (Backed up by 50 and up high by 20)
+            vec3(0, 0, 0), // Look at the origin
+            vec3(0, 1, 0) // Top Vector (parallel with y)
+        );
 
-        this.shapes = {
-            cube: new defs.Cube()
-        }
+        // Load the Kart and the world in default positions
+        this.kart = new Kart(this);
+        this.world = new World("default");
 
-        this.materials = {
-            default: new Material(new defs.Phong_Shader(), {
-                color: color(255/255, 120/255, 120/255, 1),
-                ambient: 1
-            })
-        }
+        // this.bodies allocated as empty array to hold all needed bodies
 
+        /**
+         * Because the internal makeup of this.bodies is an array (OOF!),
+         * we need to ensure that all the elements in this.bodies correctly represent
+         * both all bodies that need to be active and where they are located.
+         * 
+         * In general, we only work with two types of bodies. 
+         * The first type is (this.bodies[0]) is the Kart.
+         * The Kart needs to be passed this body on every update_state so that
+         * it can hijack the placement and rotation behavior.
+         * 
+         * The second type is (this.bodies[1:]) is the bodies of the World that are collidable.
+         * The World needs to only be passed its bodies array at the time of initialization.
+         */
+        this.kart.initializeBody(this.bodies);
+        this.world.initializeBodies(this.bodies);
+
+
+        // We also have access to simulation time variables (check default Simulation Class)
+
+        this.initialized = false;
     }
 
+    /**
+     * Create the control_panel, (TODO: Fill in extra buttons if needed, otherwise
+     * read from the keyboard manually using JS)
+     */
+    make_control_panel() {
+        this.key_triggered_button("Previous collider", ["b"], this.decrease);
+        this.key_triggered_button("Next", ["n"], this.increase);
+        this.new_line();
+        super.make_control_panel();
+    }
 
+    /**
+     * Update the Physics engine with the given time step.
+     * (Automatically accounts for simulation time lag to keep up with realtime framerate.)
+     * 
+     * Example: If we need to update the value of velocity based on 
+     * gravity, then new_velocity = old_velocity + (-9.8) * dt
+     * @param {*} dt 
+     */
     update_state(dt) {
-        // Put a moving cube into the mix
-        if (this.bodies.length == 0) {
-            let body = new Body(
-                this.shapes.cube,
-                this.materials.default.override({
-                    color: hex_color("#000012")
-                }),
-                vec3(1, 1, 1)
-            );
+        // Let the kart update its body (hijacks the body controls with emplace)
+        this.kart.update(dt);
 
-            body.emplace(
-                Mat4.identity(), // Starting position
-                vec3(0, 0, 1), // Starting linear velocity
-                0, // Starting angular velocity (can also specify angular axis)
-            );
+        // TODO: Pass the Kart / World to any external controllers as needed
+        // this.GUIController.update(this.kart);
 
-            this.bodies.push(body);
-        }
-
-        if (this.currentAngle == undefined) {
-            this.currentAngle = 0;
-        }
-
-        let location = this.bodies[0].center;
-        location = Mat4.translation(...location);
-
-        // Apply a rotation
-        this.angle = Math.PI / 8;
-        let dtangle = dt * this.angle;
-        this.currentAngle += dtangle;
-        this.currentAngle = this.currentAngle % (2 * Math.PI);
-
-
-        location = location.times(Mat4.rotation(this.currentAngle, 0, 1, 0));
-
-        //Calculate the linear velocity to always be towards the z-axis after the rotation
-        // Assume that the rotating axis is always the z-axis
-        let linear_velocity = vec3(Math.sin(this.currentAngle), 0, Math.cos(this.currentAngle));
-
-        this.bodies[0].emplace(location, linear_velocity, 0);
-
-        // The above cancels the rotation, so you will need to apply it yourself.
-
-        // Put another cube and check the collision between the two bodies
-        if (this.bodies.length == 1) {
-            let body = new Body(
-                this.shapes.cube,
-                this.materials.default.override({
-                    color: hex_color("002300")
-                }),
-                vec3(1, 1, 1)
-            );
-
-            body.emplace(
-                Mat4.identity().times(Mat4.translation(5, 0, 0)),
-                vec3(0, 0, 0),
-                0
-            );
-
-            this.bodies.push(body)
-        }
-
-        let collider = {
-            intersect_test: Body.intersect_cube, 
-            points: new defs.Cube(), 
-            leeway: .1
-        }
-
-        this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location);
-
-        if (this.bodies[0].check_if_colliding(this.bodies[1], collider)) {
-            console.log("Colliding")
-            this.currentAngle = 0;
-        }
 
     }
 
+    /**
+     * Set up the scene's default attributes such as the projection transform, camera, and lights.
+     * @param {*} context
+     * @param {*} program_state 
+     */
+    setupDefaults(context, program_state) {
+        if (this.initialized) {
+            return;
+        }
+        
+        // Camera attributes
+        const ANGLE = Math.PI / 4;
+        const NEAR = .1;
+        const FAR = 1000;
 
-
-    display(context, program_state) {
-        // display():  Called once per frame of animation.
-        // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
+        // Light attributes (by default, white and at given position)
+        const LIGHT_POS = vec4(0, 20, -50, 1);
+        const SIZE = 10000;
+        
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
@@ -117,19 +125,29 @@ export class Main extends Simulation {
 
         // Default Projection Transform
         program_state.projection_transform = Mat4.perspective(
-            Math.PI / 4, context.width / context.height, .1, 100);
+            ANGLE, context.width / context.height, NEAR, FAR);
 
         // Set lights
-        program_state.lights = [new Light(vec4(0, 20, -50, 1), color(1, 1, 1, 1), 10000)];
+        program_state.lights = [new Light(LIGHT_POS, color(1, 1, 1, 1), SIZE)];
 
-        // Draw the ground
-        let model_transform = Mat4.identity();
-        model_transform = model_transform.times(Mat4.translation(0, -1.5, 0));
-        model_transform = model_transform.times(Mat4.scale(20, .5, 20));
-        this.shapes.cube.draw(context, program_state, model_transform, this.materials.default);
+        this.initialized = true;
+    }
+
+    /**
+     * This func runs once per frame, also simulating the physics of the environment
+     * through the parent class.
+     * 
+     * @param {*} context 
+     * @param {*} program_state
+     */
+    display(context, program_state) {
+        // Always first setup the defaults, we want the lights to be ready
+        this.setupDefaults(context, program_state);
         
-        
-        // Simulate the physics environment, updating all bodies
+        // Call our super to simulate physics 
         super.display(context, program_state);
+
+        // Display all shapes in the world, this simulator will display all the bodies
+        this.world.drawWorld(context, program_state);
     }
 }
