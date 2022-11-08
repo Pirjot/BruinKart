@@ -72,6 +72,14 @@ export class World {
         this.activeBodies[params.name] = body;
     }
 
+    /**
+     * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
+     * The corresponding wall will be named "Wall-i", where i is the number of walls that have
+     * been placed using this function.
+     * @param {*} scale (default is no scaling)
+     * @param {*} location 
+     * @param {*} color (default is red)
+     */
     addWall(scale = vec3(1, 1, 1), location, color = hex_color("#cf2d21")) {
         this.addBody({
             name: `Wall-${this.numWalls}`,
