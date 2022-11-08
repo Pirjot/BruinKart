@@ -119,7 +119,7 @@ export class World {
                 color: hex_color("#375881")
             }),
             scale: vec3(1, 1, 1),
-            location: Mat4.translation(0, 1, 30)
+            location: Mat4.identity().times(Mat4.translation(0, 1, -10)),
         });
 
         // South Wall
