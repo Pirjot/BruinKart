@@ -213,13 +213,13 @@ export class Inertia_Demo extends Simulation {
         while (this.bodies.length < 150)
             this.bodies.push(new Body(this.data.random_shape(), this.random_color(), vec3(1, 1 + Math.random(), 1))
                 .emplace(Mat4.translation(...vec3(0, 15, 0).randomized(10)),
-                    vec3(0, -1, 0).randomized(2).normalized().times(3), Math.random()));
+                    vec3(0, -1, 0).randomized(2).normalized().times(20), Math.random()));
 
         for (let b of this.bodies) {
             // Gravity on Earth, where 1 unit in world space = 1 meter:
-            b.linear_velocity[1] += dt * -9.8;
+            b.linear_velocity[1] += dt * -2;
             // If about to fall through floor, reverse y velocity:
-            if (b.center[1] < -8 && b.linear_velocity[1] < 0)
+            if (b.center[1] < -20 && b.linear_velocity[1] < 0)
                 b.linear_velocity[1] *= -.8;
         }
         // Delete bodies that stop or stray too far away:
