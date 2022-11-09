@@ -33,6 +33,13 @@ export class World {
         this.activeShapes = {};
         this.activeBodies = {};
         this.numWalls = 0;
+        this.colors = {
+            red: hex_color("#FF0000"),
+            green: hex_color("#00FF00"),
+            blue: hex_color("#0000FF"),
+            yellow: hex_color("#FFFF00")
+        }
+
         switch (name) {
             default:
                 this.initDefault();
@@ -100,10 +107,10 @@ export class World {
 
     // Emplace the outer edges of the racetrack
     createOuterBoundary() {
-        const red = hex_color("#FF0000");
-        const green = hex_color("#00FF00");
-        const blue = hex_color("#0000FF");
-        const yellow = hex_color("#FFFF00");
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
 
         this.addWall(vec3(44, 2, 2), vec3(-50, 0, 48), blue);
         this.addWall(vec3(2, 2, 96), vec3(-50, 0, -48), red);
@@ -119,10 +126,10 @@ export class World {
 
     // Emplace the inner edges of the racetrack
     createInnerBoundary() {
-        const red = hex_color("#FF0000");
-        const green = hex_color("#00FF00");
-        const blue = hex_color("#0000FF");
-        const yellow = hex_color("#FFFF00");
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
 
         this.addWall(vec3(2, 2, 60), vec3(-28, 0, -32), red);
         this.addWall(vec3(16, 2, 2), vec3(-26, 0, -32), green);
@@ -134,10 +141,10 @@ export class World {
 
     // Emplace miscellaneous obstacles
     createObstacles() {
-        const red = hex_color("#FF0000");
-        const green = hex_color("#00FF00");
-        const blue = hex_color("#0000FF");
-        const yellow = hex_color("#FFFF00");
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
 
         this.addWall(vec3(4, 2, 2), vec3(24, 0, 4), blue);
         this.addWall(vec3(4, 2, 2), vec3(40, 0, 4), red);
