@@ -76,7 +76,7 @@ export class Kart {
             ambient: 1
         });
         let scale = vec3(1, 1, 1);
-        let location = Mat4.identity().times(Mat4.translation(0, 1, 0));
+        let location = Mat4.translation(-40, 1, 0);
         let velocity = vec3(0, 0, 1);
 
         this.body = new Body(cube, material, scale);

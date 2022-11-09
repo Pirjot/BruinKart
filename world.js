@@ -106,9 +106,7 @@ export class World {
         const yellow = hex_color("#FFFF00");
 
         this.addWall(vec3(44, 2, 2), vec3(-50, 0, 48), blue);
-        this.addWall(vec3(2, 2, 34), vec3(-50, 0, 14), red);
-        this.addWall(vec3(2, 2, 32), vec3(-50, 0, -18), yellow);
-        this.addWall(vec3(2, 2, 30), vec3(-50, 0, -48), red);
+        this.addWall(vec3(2, 2, 96), vec3(-50, 0, -48), red);
         this.addWall(vec3(64, 2, 2), vec3(-50, 0, -50), blue);
         this.addWall(vec3(2, 2, 18), vec3(12, 0, -48), green);
         this.addWall(vec3(38, 2, 2), vec3(12, 0, -30), blue);
@@ -117,6 +115,33 @@ export class World {
         this.addWall(vec3(2, 2, 18), vec3(2, 0, 30), green);
         this.addWall(vec3(12, 2, 2), vec3(-8, 0, 28), blue);
         this.addWall(vec3(2, 2, 18), vec3(-8, 0, 30), green);
+    }
+
+    // Emplace the inner edges of the racetrack
+    createInnerBoundary() {
+        const red = hex_color("#FF0000");
+        const green = hex_color("#00FF00");
+        const blue = hex_color("#0000FF");
+        const yellow = hex_color("#FFFF00");
+
+        this.addWall(vec3(2, 2, 60), vec3(-28, 0, -32), red);
+        this.addWall(vec3(16, 2, 2), vec3(-26, 0, -32), green);
+        this.addWall(vec3(2, 2, 22), vec3(-10, 0, -32), red);
+        this.addWall(vec3(28, 2, 2), vec3(-8, 0, -12), yellow);
+        this.addWall(vec3(2, 2, 38), vec3(18, 0, -10), green);
+        this.addWall(vec3(44, 2, 2), vec3(-26, 0, 14), blue);
+    }
+
+    // Emplace miscellaneous obstacles
+    createObstacles() {
+        const red = hex_color("#FF0000");
+        const green = hex_color("#00FF00");
+        const blue = hex_color("#0000FF");
+        const yellow = hex_color("#FFFF00");
+
+        this.addWall(vec3(4, 2, 2), vec3(24, 0, 4), blue);
+        this.addWall(vec3(4, 2, 2), vec3(40, 0, 4), red);
+        this.addWall(vec3(12, 2, 2), vec3(28, 0, 20), yellow);
     }
 
     /**
@@ -138,6 +163,8 @@ export class World {
         }
 
         this.createOuterBoundary();
+        this.createInnerBoundary();
+        this.createObstacles();
     }
 
     /**
