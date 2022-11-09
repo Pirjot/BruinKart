@@ -173,16 +173,17 @@ export class Kart {
                 
                 // First reduce the velocity
                 let val = 2 * this.velocity;
+                let Z_PUSH = val / 5;
                 this.velocity = 0;
                 
-                prevLocation = prevLocation.times(Mat4.translation(0, 0, -val / 10));
+                prevLocation = prevLocation.times(Mat4.translation(0, 0, -Z_PUSH));
                 
                 // Apply emplace
                 this.body.emplace(prevLocation, vec3(0, 0, -val), 0);
                 this.body.inverse = Mat4.inverse(this.body.drawn_location);
 
                 if (this.body.check_if_colliding(this.game.bodies[i], this.collider)) {
-                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 2 * val / 10));
+                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 2 * Z_PUSH));
                     this.body.emplace(prevLocation, vec3(0, 0, val), 0);
                 }
 
@@ -195,7 +196,7 @@ export class Kart {
      * Return the camera position for behind the kart.
      */
     getBackCam() {
-        // Generate the matrix using the drawn location then just use look at
+        // Generate the matrix using the drawn location
         let drawn = this.body.drawn_location;
         
         // TODO: Hard set the parameters for the camera as alterable
@@ -203,6 +204,20 @@ export class Kart {
         drawn = drawn.times(Mat4.rotation(Math.PI / 8, 1, 0, 0));
         drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
 
+        drawn = Mat4.inverse(drawn);
+
+        return drawn;
+    }
+
+    /**
+     * Return the camera position for the front of the kart.
+     */
+    getFrontCam() {
+        // Generate the matrix 
+        let drawn = this.body.drawn_location;
+
+        drawn = drawn.times(Mat4.translation(0, 0, 3));
+        drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
         drawn = Mat4.inverse(drawn);
 
         return drawn;

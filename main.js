@@ -156,6 +156,7 @@ export class BruinKart extends Simulation {
         const NEAR = .1;
         const FAR = 1000;
 
+        // TODO: Lights should be set by the world/bodies/karts
         // Light attributes (by default, white and at given position)
         const LIGHT_POS = vec4(0, 20, -50, 1);
         const SIZE = 10000;
@@ -206,6 +207,9 @@ export class BruinKart extends Simulation {
         switch (this.attachedCamera) {
             case "kartBack":
                 program_state.set_camera(this.kart.getBackCam());
+                break;
+            case "kartFront":
+                program_state.set_camera(this.kart.getFrontCam());
                 break;
             default: 
                 program_state.set_camera(this.initial_camera_location);
