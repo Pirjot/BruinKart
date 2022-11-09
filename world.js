@@ -33,7 +33,6 @@ export class World {
         this.activeShapes = {};
         this.activeBodies = {};
         this.numWalls = 0;
-
         switch (name) {
             default:
                 this.initDefault();
@@ -70,27 +69,54 @@ export class World {
         body.emplace(params.location, params.velocity, params.angular, params.spin_axis);
 
         this.activeBodies[params.name] = body;
+
+        console.log("Bodies", this.activeBodies);
     }
 
     /**
      * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
      * The corresponding wall will be named "Wall-i", where i is the number of walls that have
      * been placed using this function.
-     * @param {*} scale (default is no scaling)
-     * @param {*} location 
-     * @param {*} color (default is red)
+     * @param {vec3} dims The x,y,z dimensions of the wall 
+     * @param {vec3} location The x,y,z coordinates where the top left (least x, least z)
+     *                        of the wall should be placed
+     * @param {vec3} color (default is red)
      */
-    addWall(scale = vec3(1, 1, 1), location, color = hex_color("#cf2d21")) {
+    addWall(dims, location, color = hex_color("#cf2d21")) {
         this.addBody({
             name: `Wall-${this.numWalls}`,
             shape: globalShapes.cube,
             material: globalMaterials.default.override({
-                color: color
+                color: color,
+                ambient: 1
             }),
-            scale: scale,
-            location: Mat4.translation(location[0], location[1], location[2])
+            scale: vec3(dims[0] / 2, dims[1] / 2, dims[2] / 2),
+            location: Mat4.translation(location[0], location[1], location[2]).times(
+                Mat4.translation(dims[0] / 2, dims[1] / 2, dims[2] / 2)
+            )
         });
         this.numWalls++;
+    }
+
+    // Emplace the outer edges of the racetrack
+    createOuterBoundary() {
+        const red = hex_color("#FF0000");
+        const green = hex_color("#00FF00");
+        const blue = hex_color("#0000FF");
+        const yellow = hex_color("#FFFF00");
+
+        this.addWall(vec3(44, 2, 2), vec3(-50, 0, 48), blue);
+        this.addWall(vec3(2, 2, 34), vec3(-50, 0, 14), red);
+        this.addWall(vec3(2, 2, 32), vec3(-50, 0, -18), yellow);
+        this.addWall(vec3(2, 2, 30), vec3(-50, 0, -48), red);
+        this.addWall(vec3(64, 2, 2), vec3(-50, 0, -50), blue);
+        this.addWall(vec3(2, 2, 18), vec3(12, 0, -48), green);
+        this.addWall(vec3(38, 2, 2), vec3(12, 0, -30), blue);
+        this.addWall(vec3(2, 2, 76), vec3(48, 0, -28), green);
+        this.addWall(vec3(48, 2, 2), vec3(2, 0, 48), blue);
+        this.addWall(vec3(2, 2, 18), vec3(2, 0, 30), green);
+        this.addWall(vec3(12, 2, 2), vec3(-8, 0, 28), blue);
+        this.addWall(vec3(2, 2, 18), vec3(-8, 0, 30), green);
     }
 
     /**
@@ -111,28 +137,7 @@ export class World {
             "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(100, .5, 100))
         }
 
-        // Add a body box (not in activeShapes)
-        this.addBody({
-            name: "box1",
-            shape: globalShapes.cube,
-            material: globalMaterials.default.override({
-                color: hex_color("#375881")
-            }),
-            scale: vec3(1, 1, 1),
-            location: Mat4.identity().times(Mat4.translation(0, 1, -10)),
-        });
-
-        // South Wall
-        this.addWall(vec3(100, 1, 1), vec3(0, 1, 100));
-
-        // North Wall
-        this.addWall(vec3(100, 1, 1), vec3(0, 1, -100));
-
-        // West Wall
-        this.addWall(vec3(1, 1, 100), vec3(100, 1, 0));
-
-        // East Wall
-        this.addWall(vec3(1, 1, 100), vec3(-100, 1, 0));
+        this.createOuterBoundary();
     }
 
     /**
