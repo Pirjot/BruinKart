@@ -71,16 +71,16 @@ export class Kart {
 
     generateBody(options={}) {
         // Generate a body, TODO: Add the model for the kart here
-        let cube = new Model();
+        let model = globalShapes.model;
         let material = new Material(new defs.Phong_Shader(), {
-            color: hex_color("#00AA00"),
+            color: hex_color("#888888"),
             ambient: 1
         });
         let scale = vec3(1, 1, 1);
         let location = Mat4.identity().times(Mat4.translation(0, 1, 0));
         let velocity = vec3(0, 0, 1);
 
-        this.body = new Body(cube, material, scale);
+        this.body = new Body(model, material, scale);
 
         // Make sure to emplace the body (velocity and angular will be hijacked regardless)
         this.body.emplace(location, velocity, 0);

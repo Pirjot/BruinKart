@@ -11,7 +11,7 @@ class Wedge extends Shape{
         this.arrays.position = Vector3.cast(
             [1,-1,-1],[1,1,-1],[1,-1,1],[-1,-1,1],[-1,-1,-1],[-1,1,-1]
         );
-        this.arrays.normal = Vector3.cast([1,-1,-1],[1,1,-1],[1,-1,1],[-1,-1,1],[-1,-1,-1],[-1,1,-1]);
+        this.arrays.normal = Vector3.cast([0,0,-1],[0,1,1],[0,1,1],[0,1,1],[0,0,-1],[0,1,1]);
         this.indices.push(0,1,2,2,1,3,3,5,1,1,0,4,4,1,5,5,4,3,3,4,0,0,2,3);
 
 
