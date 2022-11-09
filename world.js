@@ -32,6 +32,7 @@ export class World {
          */
         this.activeShapes = {};
         this.activeBodies = {};
+        this.numWalls = 0;
 
         switch (name) {
             default:
@@ -72,6 +73,27 @@ export class World {
     }
 
     /**
+     * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
+     * The corresponding wall will be named "Wall-i", where i is the number of walls that have
+     * been placed using this function.
+     * @param {*} scale (default is no scaling)
+     * @param {*} location 
+     * @param {*} color (default is red)
+     */
+    addWall(scale = vec3(1, 1, 1), location, color = hex_color("#cf2d21")) {
+        this.addBody({
+            name: `Wall-${this.numWalls}`,
+            shape: globalShapes.cube,
+            material: globalMaterials.default.override({
+                color: color
+            }),
+            scale: scale,
+            location: Mat4.translation(location[0], location[1], location[2])
+        });
+        this.numWalls++;
+    }
+
+    /**
      * Setup the default world and draw it and ensure that its bodies are added.
      * 
      * The Default world solely contains a single box and the ground.
@@ -86,7 +108,7 @@ export class World {
             "material": globalMaterials.default.override({
                 "color": hex_color("#666666")
             }),
-            "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(30, .5, 30))
+            "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(100, .5, 100))
         }
 
         // Add a body box (not in activeShapes)
@@ -99,6 +121,18 @@ export class World {
             scale: vec3(1, 1, 1),
             location: Mat4.identity().times(Mat4.translation(0, 1, -10)),
         });
+
+        // South Wall
+        this.addWall(vec3(100, 1, 1), vec3(0, 1, 100));
+
+        // North Wall
+        this.addWall(vec3(100, 1, 1), vec3(0, 1, -100));
+
+        // West Wall
+        this.addWall(vec3(1, 1, 100), vec3(100, 1, 0));
+
+        // East Wall
+        this.addWall(vec3(1, 1, 100), vec3(-100, 1, 0));
     }
 
     /**
