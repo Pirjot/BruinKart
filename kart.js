@@ -8,6 +8,7 @@
 
 import {defs, tiny} from './examples/common.js';
 import {Body, Simulation} from './physics.js';
+import {Model} from './model.js';
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
@@ -70,7 +71,7 @@ export class Kart {
 
     generateBody(options={}) {
         // Generate a body, TODO: Add the model for the kart here
-        let cube = globalShapes.cube;
+        let cube = new Model();
         let material = new Material(new defs.Phong_Shader(), {
             color: hex_color("#00AA00"),
             ambient: 1
