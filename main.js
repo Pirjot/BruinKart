@@ -66,6 +66,19 @@ export class BruinKart extends Simulation {
 
         // We also have access to simulation time variables (check default Simulation Class)
 
+        /**
+         * Attached Camera position, can be behind the kart or in front of for now.
+         * 
+         * Values:
+         * default
+         * kartBack
+         * kartFront
+         * 
+         * (Check this.attachCamera func to see how this is handled)
+         */
+        this.attachedCamera = "default";
+        this.cameraListener = false;
+
         this.initialized = false;
     }
 
@@ -95,6 +108,36 @@ export class BruinKart extends Simulation {
         // TODO: Pass the Kart / World to any external controllers as needed
         // this.GUIController.update(this.kart);
 
+        // Attach the camera to the kart if needed
+        this.handleCameraChoice();
+    }
+
+
+
+    /**
+     * Check if the user presses C, in which case we toggle on the camera status to
+     * get the Kart.
+     */
+    handleCameraChoice() {
+        /**
+         * Return the next camera given the currCam option.
+         * @param {*} currCam 
+         */
+        function nextCam(currCam) {
+            return currCam == "default"   ? "kartBack" : 
+                   currCam == "kartBack" ? "kartFront" : 
+                                            "default";
+        }
+
+        if (!this.cameraListener) {
+            document.addEventListener("keydown", (evt) => {
+                // Set this.attachedCamera string accordingly
+                if (evt.keyCode == 67) { // Equal to c
+                    this.attachedCamera = nextCam(this.attachedCamera);
+                }
+            });
+            this.cameraListener = true;
+        }
 
     }
 
@@ -149,5 +192,23 @@ export class BruinKart extends Simulation {
 
         // Display all shapes in the world, this simulator will display all the bodies
         this.world.drawWorld(context, program_state);
+
+        // Handle Camera
+        this.attachCamera(context, program_state);
+    }
+
+    /**
+     * Attach the program_state's camera accordingly from the given kart positions.
+     * @param {*} context 
+     * @param {*} program_state 
+     */
+    attachCamera(context, program_state) {
+        switch (this.attachedCamera) {
+            case "kartBack":
+                program_state.set_camera(this.kart.getBackCam());
+                break;
+            default: 
+                program_state.set_camera(this.initial_camera_location);
+        }
     }
 }
