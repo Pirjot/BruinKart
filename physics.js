@@ -1,3 +1,4 @@
+import { Test_Data } from './examples/collisions-demo.js';
 import {defs, tiny} from './examples/common.js';
 
 // Pull these names into this module's scope for convenience:
@@ -90,8 +91,13 @@ export class Body {
     }
 
     // (within some margin of distance).
-    static intersect_cube(p, margin = 0) {
-        return p.every(value => value >= -1 - margin && value <= 1 + margin)
+    static intersect_cube(p, marginX = 0, marginY = 0, marginZ = 0) {
+        function test(point) {
+            return point[0] >= - marginX && point[0] <= marginX &&
+                   point[1] >= - marginY && point[1] <= marginY &&
+                   point[2] >= - marginZ && point[2] <= marginZ;
+        }
+        return test(p);
     }
 
     // Brought back from Github
@@ -158,11 +164,15 @@ export class Body {
         // Convert sphere b to the frame where a is a unit sphere:
         const T = this.inverse.times(b.drawn_location, this.temp_matrix);
 
-        const {intersect_test, points, leeway} = collider;
+        // let bInverse = Mat4.inverse(b.drawn_location);
+        // const T = bInverse.times(this.drawn_location, this.temp_matrix);
+
+
+        const {intersect_test, points, leeways} = collider;
         // For each vertex in that b, shift to the coordinate frame of
         // a_inv*b.  Check if in that coordinate frame it penetrates
         // the unit sphere at the origin.  Leave some leeway.
         return points.arrays.position.some(p =>
-            intersect_test(T.times(p.to4(1)).to3(), leeway));
+            intersect_test(T.times(p.to4(1)).to3(), leeways[0], leeways[1], leeways[2]));
     }
 }

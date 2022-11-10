@@ -60,9 +60,9 @@ export class Kart {
 
         // Collider Default
         this.collider = {
-            intersect_test: Body.intersect_sphere, 
-            points: new defs.Subdivision_Sphere(4), 
-            leeway: 0
+            intersect_test: Body.intersect_cube, 
+            points: new defs.Cube(), 
+            leeways: [5, 3, 4]
         }
     }
 
@@ -73,7 +73,7 @@ export class Kart {
             color: hex_color("#00AA00"),
             ambient: 1
         });
-        let scale = vec3(1, 1, 1);
+        let scale = vec3(5, 3, 4);
         let location = Mat4.identity().times(Mat4.translation(0, 1, 0));
         let velocity = vec3(0, 0, 1);
 
@@ -171,6 +171,12 @@ export class Kart {
                  * on its x-axis or or on its z-axis, depending on the current angle.
                  */
                 
+                if (Math.abs(this.velocity) < 10 * this.slowDownSpeed) {
+                    // The user turned in, so push the angle back
+                    this.deltaAngle = -this.deltaAngle;
+                    return;
+                }
+
                 // First reduce the velocity
                 let val = 2 * this.velocity;
                 let Z_PUSH = val / 5;
@@ -183,11 +189,11 @@ export class Kart {
                 this.body.inverse = Mat4.inverse(this.body.drawn_location);
 
                 if (this.body.check_if_colliding(this.game.bodies[i], this.collider)) {
-                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 2 * Z_PUSH));
+                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 10 * Z_PUSH));
                     this.body.emplace(prevLocation, vec3(0, 0, val), 0);
                 }
 
-                this.velocity = -val / 10;
+                this.velocity = -val / 5;
             }
         }
     }
