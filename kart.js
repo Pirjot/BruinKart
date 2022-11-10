@@ -73,8 +73,8 @@ export class Kart {
             color: hex_color("#00AA00"),
             ambient: 1
         });
-        let scale = vec3(5, 3, 4);
-        let location = Mat4.identity().times(Mat4.translation(0, 1, 0));
+        let scale = vec3(1, 1, 1);
+        let location = Mat4.translation(-40, 1, 0);
         let velocity = vec3(0, 0, 1);
 
         this.body = new Body(cube, material, scale);
