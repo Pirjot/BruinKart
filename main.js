@@ -13,7 +13,7 @@ const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = ti
 // Load all necessary shapes onto the GPU
 globalThis.globalShapes = {
     cube: new defs.Cube(),
-    model: new Model(),
+    model: new Model('assets/kart.obj'),
 }
 
 // Load all needed materials

@@ -69,22 +69,22 @@ const Tetrahedron = defs.Tetrahedron =
             if (!using_flat_shading) {
                 // Method 1:  A tetrahedron with shared vertices.  Compact, performs better,
                 // but can't produce flat shading or discontinuous seams in textures.
-                this.arrays.position = Vec.cast([0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]);
-                this.arrays.normal = Vec.cast([-a, -a, -a], [1, 0, 0], [0, 1, 0], [0, 0, 1]);
-                this.arrays.texture_coord = Vec.cast([0, 0], [1, 0], [0, 1,], [1, 1]);
+                this.arrays.position = Vector.cast([0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]);
+                this.arrays.normal = Vector.cast([-a, -a, -a], [1, 0, 0], [0, 1, 0], [0, 0, 1]);
+                this.arrays.texture_coord = Vector.cast([0, 0], [1, 0], [0, 1,], [1, 1]);
                 // Notice the repeats in the index list.  Vertices are shared
                 // and appear in multiple triangles with this method.
                 this.indices.push(0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3);
             } else {
                 // Method 2:  A tetrahedron with four independent triangles.
-                this.arrays.position = Vec.cast([0, 0, 0], [1, 0, 0], [0, 1, 0],
+                this.arrays.position = Vector.cast([0, 0, 0], [1, 0, 0], [0, 1, 0],
                     [0, 0, 0], [1, 0, 0], [0, 0, 1],
                     [0, 0, 0], [0, 1, 0], [0, 0, 1],
                     [0, 0, 1], [1, 0, 0], [0, 1, 0]);
 
                 // The essence of flat shading:  This time, values of normal vectors can
                 // be constant per whole triangle.  Repeat them for all three vertices.
-                this.arrays.normal = Vec.cast([0, 0, -1], [0, 0, -1], [0, 0, -1],
+                this.arrays.normal = Vector.cast([0, 0, -1], [0, 0, -1], [0, 0, -1],
                     [0, -1, 0], [0, -1, 0], [0, -1, 0],
                     [-1, 0, 0], [-1, 0, 0], [-1, 0, 0],
                     [a, a, a], [a, a, a], [a, a, a]);
@@ -93,7 +93,7 @@ const Tetrahedron = defs.Tetrahedron =
                 // image is mapped onto each face).  We couldn't do this with shared
                 // vertices since this features abrupt transitions when approaching the
                 // same point from different directions.
-                this.arrays.texture_coord = Vec.cast([0, 0], [1, 0], [1, 1],
+                this.arrays.texture_coord = Vector.cast([0, 0], [1, 0], [1, 1],
                     [0, 0], [1, 0], [1, 1],
                     [0, 0], [1, 0], [1, 1],
                     [0, 0], [1, 0], [1, 1]);
