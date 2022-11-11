@@ -27,8 +27,12 @@ export class World {
         /**
          * Example:
          * "ground": {
-         *      
-         * }
+                "shape": globalShapes.cube,
+                "material": globalMaterials.default.override({
+                    "color": hex_color("#666666")
+                }),
+                "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(30, .5, 30))
+            }
          */
         this.activeShapes = {};
         this.activeBodies = {};
@@ -76,8 +80,6 @@ export class World {
         body.emplace(params.location, params.velocity, params.angular, params.spin_axis);
 
         this.activeBodies[params.name] = body;
-
-        console.log("Bodies", this.activeBodies);
     }
 
     /**
