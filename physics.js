@@ -162,10 +162,10 @@ export class Body {
             return false;
         // Nothing collides with itself.
         // Convert sphere b to the frame where a is a unit sphere:
-        const T = this.inverse.times(b.drawn_location, this.temp_matrix);
+        // const T = this.inverse.times(b.drawn_location, this.temp_matrix);
 
-        // let bInverse = Mat4.inverse(b.drawn_location);
-        // const T = bInverse.times(this.drawn_location, this.temp_matrix);
+        let bInverse = Mat4.inverse(b.drawn_location);
+        const T = bInverse.times(this.drawn_location, this.temp_matrix);
 
 
         const {intersect_test, points, leeways} = collider;

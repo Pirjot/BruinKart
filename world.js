@@ -80,8 +80,6 @@ export class World {
         body.emplace(params.location, params.velocity, params.angular, params.spin_axis);
 
         this.activeBodies[params.name] = body;
-
-        console.log("Bodies", this.activeBodies);
     }
 
     /**

@@ -62,7 +62,7 @@ export class Kart {
         this.collider = {
             intersect_test: Body.intersect_cube, 
             points: new defs.Cube(), 
-            leeways: [5, 3, 4]
+            leeways: [1, 1, 1]
         }
     }
 
@@ -75,7 +75,7 @@ export class Kart {
         });
         let scale = vec3(1, 1, 1);
         let location = Mat4.translation(-40, 1, 0);
-        let velocity = vec3(0, 0, 1);
+        let velocity = vec3(0, 0, 0);
 
         this.body = new Body(cube, material, scale);
 
@@ -189,7 +189,7 @@ export class Kart {
                 this.body.inverse = Mat4.inverse(this.body.drawn_location);
 
                 if (this.body.check_if_colliding(this.game.bodies[i], this.collider)) {
-                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 10 * Z_PUSH));
+                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 2 * Z_PUSH));
                     this.body.emplace(prevLocation, vec3(0, 0, val), 0);
                 }
 
