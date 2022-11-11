@@ -2,6 +2,7 @@ import {defs, tiny} from './examples/common.js';
 import {Body, Simulation} from './physics.js';
 import {Kart} from './kart.js';
 import {World} from './world.js';
+import {Model} from './model.js';
 
 
 // Pull these names into this module's scope for convenience:
@@ -11,7 +12,8 @@ const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = ti
 
 // Load all necessary shapes onto the GPU
 globalThis.globalShapes = {
-    cube: new defs.Cube()
+    cube: new defs.Cube(),
+    model: new Model('assets/kart.obj'),
 }
 
 // Load all needed materials
