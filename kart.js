@@ -14,19 +14,17 @@ import {Model} from './model.js';
 const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
 
 // Read user input globally (using deprecated keyCode)
-let keys = {};
+globalThis.keys = {};
 
 document.onkeydown = function(e){
     if(!keys[e.keyCode])   {
         keys[e.keyCode] = true;
-        keys.length++;
     }
 }
 
 document.onkeyup = function(e){
     if(keys[e.keyCode])   {
         keys[e.keyCode] = false;
-        keys.length--;
     }
 }
 
@@ -63,9 +61,9 @@ export class Kart {
 
         // Collider Default
         this.collider = {
-            intersect_test: Body.intersect_sphere, 
-            points: new defs.Subdivision_Sphere(5), 
-            leeway: 0
+            intersect_test: Body.intersect_cube, 
+            points: new defs.Cube(), 
+            leeways: [1, 1, 1]
         }
     }
 
@@ -77,8 +75,8 @@ export class Kart {
             ambient: 1
         });
         let scale = vec3(1, 1, 1);
-        let location = Mat4.identity().times(Mat4.translation(0, 1, 0));
-        let velocity = vec3(0, 0, 1);
+        let location = Mat4.translation(-40, 1, 0);
+        let velocity = vec3(0, 0, 0);
 
         this.body = new Body(model, material, scale);
 
@@ -120,7 +118,7 @@ export class Kart {
         this.body.emplace(location, linear_velocity, 0);
 
         // Handle collisions with other bodies in the game world (Maybe send the location and linear_velocity to the collisions?)
-        this.handleCollisions(location, linear_velocity);
+        this.handleCollisions(location);
     }
 
     /**
@@ -151,6 +149,10 @@ export class Kart {
             this.deltaAngle = Math.max(-1 * this.maxDeltaAngle, this.deltaAngle - this.shortDeltaAngle);
         } else {
             // Create an artificial straightening effect
+            if (Math.abs(this.deltaAngle) < this.slowDownAngle) {
+                this.deltaAngle = 0;
+                return;
+            }
             this.deltaAngle += this.deltaAngle > 0 ? -1 * this.slowDownAngle : this.slowDownAngle;
         }
     }
@@ -158,7 +160,7 @@ export class Kart {
     /**
      * Handle Collisions by changing the way the kart reacts with its velocity.
      */
-    handleCollisions(prevLocation, prevVelocity) {
+    handleCollisions(prevLocation) {
         // The inverse of the first body must be set
         this.body.inverse = Mat4.inverse(this.body.drawn_location);
 
@@ -170,16 +172,61 @@ export class Kart {
                  * on its x-axis or or on its z-axis, depending on the current angle.
                  */
                 
-                // First reduce the velocity
-                this.velocity = this.velocity < 0 ? -.005 : .005;
+                if (Math.abs(this.velocity) < 10 * this.slowDownSpeed) {
+                    // The user turned in, so push the angle back
+                    this.deltaAngle = -this.deltaAngle;
+                    return;
+                }
 
-                let Z_PUSH = this.velocity < 0 ? .05 : -.05;
-                prevLocation = prevLocation.times(Mat4.translation(0, 0, Z_PUSH));
+                // First reduce the velocity
+                let val = 2 * this.velocity;
+                let Z_PUSH = val / 5;
+                this.velocity = 0;
+                
+                prevLocation = prevLocation.times(Mat4.translation(0, 0, -Z_PUSH));
                 
                 // Apply emplace
-                this.body.emplace(prevLocation, prevVelocity, 0);
+                this.body.emplace(prevLocation, vec3(0, 0, -val), 0);
+                this.body.inverse = Mat4.inverse(this.body.drawn_location);
+
+                if (this.body.check_if_colliding(this.game.bodies[i], this.collider)) {
+                    prevLocation = prevLocation.times(Mat4.translation(0, 0, 2 * Z_PUSH));
+                    this.body.emplace(prevLocation, vec3(0, 0, val), 0);
+                }
+
+                this.velocity = -val / 5;
             }
         }
+    }
 
+    /**
+     * Return the camera position for behind the kart.
+     */
+    getBackCam() {
+        // Generate the matrix using the drawn location
+        let drawn = this.body.drawn_location;
+        
+        // TODO: Hard set the parameters for the camera as alterable
+        drawn = drawn.times(Mat4.translation(0, 10, -20));
+        drawn = drawn.times(Mat4.rotation(Math.PI / 8, 1, 0, 0));
+        drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
+
+        drawn = Mat4.inverse(drawn);
+
+        return drawn;
+    }
+
+    /**
+     * Return the camera position for the front of the kart.
+     */
+    getFrontCam() {
+        // Generate the matrix 
+        let drawn = this.body.drawn_location;
+
+        drawn = drawn.times(Mat4.translation(0, 0, 3));
+        drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
+        drawn = Mat4.inverse(drawn);
+
+        return drawn;
     }
 }
