@@ -312,6 +312,25 @@ export class World {
 
     // Emplace miscellaneous obstacles
     createObstacles() {
+        this.addWall("blueNS4", vec3(64, 0, 224));
+        this.addWall("blueNS4", vec3(64, 0, 250));
+        this.addWall("blueNS4", vec3(64, 0, 246));
+        this.addWall("blueNS4", vec3(64, 0, 242));
+
+        this.addWall("redEW4", vec3(24, 0, 228));
+        this.addWall("redEW4", vec3(24, 0, 230));
+
+        this.addWall("greenEW4", vec3(48, 0, 128));
+        this.addWall("greenEW4", vec3(48, 0, 126));
+
+        this.addWall("yellowEW4", vec3(36, 0, 86));
+        this.addWall("yellowEW4", vec3(36, 0, 88));
+
+        this.addWall("yellowNS4", vec3(40, 0, 10));
+        this.addWall("yellowNS4", vec3(40, 0, 22));
+
+        this.addWall("blueNS4", vec3(60, 0, 14));
+        this.addWall("blueNS4", vec3(60, 0, 18));
     }
 
     /**
