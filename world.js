@@ -48,13 +48,29 @@ export class World {
             mult32x2: new Material(new defs.Textured_Phong(1), {
                 color: hex_color("#000000"),
                 ambient: 1.0,
-                texture: new Texture("assets/mult32x2.png")})
+                texture: new Texture("assets/mult32x2.png")}),
+            red2x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"),
+                ambient: 1.0,
+                texture: new Texture("assets/red2x2.png")}),
+            yellow2x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"),
+                ambient: 1.0,
+                texture: new Texture("assets/yellow2x2.png")}),
+            green2x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"),
+                ambient: 1.0,
+                texture: new Texture("assets/green2x2.png")}),
+            blue2x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"),
+                ambient: 1.0,
+                texture: new Texture("assets/blue2x2.png")})
         }
         this.shapes = {
             multEW32: new Cube(),
             multNS32: new Cube(),
             multWE32: new Cube(),
-            multSN32: new Cube()
+            multSN32: new Cube(),
         }
         const eastWest32Array = [
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Bottom face
@@ -163,6 +179,22 @@ export class World {
                 shape = this.shapes.multSN32;
                 material = this.materials.mult32x2;
                 dims = vec3(2, 2, 32); break;
+            case "red2":
+                shape = globalShapes.cube;
+                material = this.materials.red2x2;
+                dims = vec3(2, 2, 2); break;
+            case "yellow2":
+                shape = globalShapes.cube;
+                material = this.materials.yellow2x2;
+                dims = vec3(2, 2, 2); break;
+            case "green2":
+                shape = globalShapes.cube;
+                material = this.materials.green2x2;
+                dims = vec3(2, 2, 2); break;
+            case "blue2":
+                shape = globalShapes.cube;
+                material = this.materials.blue2x2;
+                dims = vec3(2, 2, 2); break;
         }
 
         this.addBody({
@@ -183,6 +215,11 @@ export class World {
         this.addWall("multNS32", vec3(0, 0, 4));
         this.addWall("multWE32", vec3(0, 0, 38));
         this.addWall("multSN32", vec3(30, 0, 4));
+
+        this.addWall("red2", vec3(40, 0, 0));
+        this.addWall("yellow2", vec3(44, 0, 0));
+        this.addWall("green2", vec3(48, 0, 0));
+        this.addWall("blue2", vec3(52, 0, 0));
     }
 
     // Emplace the inner edges of the racetrack
