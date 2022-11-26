@@ -272,30 +272,42 @@ export class World {
 
     // Emplace the outer edges of the racetrack
     createOuterBoundary() {
-        this.addWall("multEW32", vec3(0, 0, 0));
-        this.addWall("multNS32", vec3(0, 0, 4));
-        this.addWall("multWE32", vec3(0, 0, 38));
-        this.addWall("multSN32", vec3(30, 0, 4));
-
-        this.addWall("red2", vec3(40, 0, 0));
-        this.addWall("yellow2", vec3(44, 0, 0));
-        this.addWall("green2", vec3(48, 0, 0));
-        this.addWall("blue2", vec3(52, 0, 0));
-
-        this.addWall("redEW4", vec3(56, 0, 0));
-        this.addWall("yellowEW4", vec3(56, 0, 4));
-        this.addWall("greenEW4", vec3(56, 0, 8));
-        this.addWall("blueEW4", vec3(56, 0, 12));
-
-        this.addWall("redNS4", vec3(0, 0, 50));
-        this.addWall("yellowNS4", vec3(4, 0, 50));
-        this.addWall("greenNS4", vec3(8, 0, 50));
-        this.addWall("blueNS4", vec3(12, 0, 50));
+        for (let x = 0; x < 128; x += 32) {
+            this.addWall("multEW32", vec3(x, 0, 0));
+        }
+        for (let z = 0; z < 256; z += 32) {
+            this.addWall("multSN32", vec3(126, 0, z));
+        }
+        for (let z = 0; z < 256; z += 32) {
+            this.addWall("multNS32", vec3(0, 0, z));
+        }
+        for (let x = 0; x < 128; x += 32 ) {
+            this.addWall("multWE32", vec3(x, 0, 254));
+        } 
+        this.addWall("multEW32", vec3(0, 0, 96));
+        this.addWall("multSN32", vec3(30, 0, 96));
+        this.addWall("multSN32", vec3(30, 0, 128));
+        this.addWall("multWE32", vec3(0, 0, 158));
     }
 
     // Emplace the inner edges of the racetrack
     createInnerBoundary() {
-
+        for (let x = 32; x < 96; x += 32) {
+            this.addWall("multEW32", vec3(x, 0, 32));
+        }
+        for (let z = 32; z < 224; z += 32) {
+            this.addWall("multSN32", vec3(94, 0, z));
+        }
+        for (let x = 32; x < 96; x += 32) {
+            this.addWall("multWE32", vec3(x, 0, 222));
+        }
+        this.addWall("multNS32", vec3(32, 0, 192));
+        this.addWall("multEW32", vec3(32, 0, 192));
+        for (let z = 64; z < 192; z += 32) {
+            this.addWall("multNS32", vec3(64, 0, z));
+        }
+        this.addWall("multWE32", vec3(32, 0, 62));
+        this.addWall("multNS32", vec3(32, 0, 32));
     }
 
     // Emplace miscellaneous obstacles
@@ -315,10 +327,10 @@ export class World {
         this.activeShapes["ground"] = {
             "shape": globalShapes.cube,
             "material": globalMaterials.default.override({
-                "color": hex_color("#00FF00"),
+                "color": hex_color("#FFFFFF"),
                 "ambient": 1.0
             }),
-            "transform": Mat4.translation(60, -.5, 80).times(Mat4.scale(60, .5, 80))
+            "transform": Mat4.translation(64, -.5, 128).times(Mat4.scale(64, .5, 128))
         }
 
         this.createOuterBoundary();
