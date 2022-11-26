@@ -9,7 +9,8 @@ import {defs, tiny} from './examples/common.js';
 import {Body, Simulation} from './physics.js';
 
 // Pull these names into this module's scope for convenience:
-const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
+const {vec, vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_color} = tiny;
+const {Cube, Textured_Phong} = defs
 
 /**
  * A Helper class to abstractify the operation of setting up certain
@@ -43,6 +44,54 @@ export class World {
             blue: hex_color("#0000FF"),
             yellow: hex_color("#FFFF00")
         }
+        this.materials = {
+            mult32x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"),
+                ambient: 1.0,
+                texture: new Texture("assets/mult32x2.png")})
+        }
+        this.shapes = {
+            multEW32: new Cube(),
+            multNS32: new Cube(),
+            multWE32: new Cube(),
+            multSN32: new Cube()
+        }
+        const eastWest32Array = [
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Bottom face
+            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // Top face
+            vec(0, 0), vec(1/16, 0), vec(0, 1), vec(1/16, 1),   // East face
+            vec(15/16, 0), vec(1, 0), vec(15/16, 1), vec(1, 1), // West face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // South face
+            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1)        // North face
+        ];
+        const northSouth32Array = [
+            vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Bottom face
+            vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Top face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // East face
+            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // West face
+            vec(15/16, 0), vec(1, 0), vec(15/16, 1), vec(1, 1), // South face
+            vec(0, 0), vec(1/16, 0), vec(0, 1), vec(1/16, 1)    // North face
+        ];
+        const westEast32Array = [
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // Bottom face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),       // Top face
+            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1),   // East face
+            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1), // West face
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // South face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1)        // North face
+        ];
+        const southNorth32Array = [
+            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),         // Bottom face
+            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),         // Top face
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // East face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),       // West face
+            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1), // South face
+            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1)    // North face
+        ];
+        this.shapes.multEW32.arrays.texture_coord = eastWest32Array;
+        this.shapes.multNS32.arrays.texture_coord = northSouth32Array;
+        this.shapes.multWE32.arrays.texture_coord = westEast32Array;
+        this.shapes.multSN32.arrays.texture_coord = southNorth32Array;
 
         switch (name) {
             default:
@@ -86,19 +135,40 @@ export class World {
      * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
      * The corresponding wall will be named "Wall-i", where i is the number of walls that have
      * been placed using this function.
-     * @param {vec3} dims The x,y,z dimensions of the wall 
+     * @param {string} wall Specifies what kind of wall to build to determine color and dimensions
+     *                      - multEW32, multNS32, multWE32, multSN32
      * @param {vec3} location The x,y,z coordinates where the top left (least x, least z)
      *                        of the wall should be placed
-     * @param {vec3} color (default is red)
      */
-    addWall(dims, location, color = hex_color("#cf2d21")) {
+    addWall(wall, location) {
+
+        const wallName = `Wall-${this.numWalls}`;
+        let material = globalMaterials.default;
+        let shape = globalShapes.cube;
+        let dims = vec3(2, 2, 2);
+        switch(wall) {
+            case "multEW32":
+                shape = this.shapes.multEW32;
+                material = this.materials.mult32x2; 
+                dims = vec3(32, 2, 2); break;
+            case "multNS32": 
+                shape = this.shapes.multNS32; 
+                material = this.materials.mult32x2; 
+                dims = vec3(2, 2, 32); break;
+            case "multWE32":
+                shape = this.shapes.multWE32;
+                material = this.materials.mult32x2;
+                dims = vec3(32, 2, 2); break;
+            case "multSN32":
+                shape = this.shapes.multSN32;
+                material = this.materials.mult32x2;
+                dims = vec3(2, 2, 32); break;
+        }
+
         this.addBody({
-            name: `Wall-${this.numWalls}`,
-            shape: globalShapes.cube,
-            material: globalMaterials.default.override({
-                color: color,
-                ambient: 1
-            }),
+            name: wallName,
+            shape: shape,
+            material: material,
             scale: vec3(dims[0] / 2, dims[1] / 2, dims[2] / 2),
             location: Mat4.translation(location[0], location[1], location[2]).times(
                 Mat4.translation(dims[0] / 2, dims[1] / 2, dims[2] / 2)
@@ -109,48 +179,19 @@ export class World {
 
     // Emplace the outer edges of the racetrack
     createOuterBoundary() {
-        const red = this.colors.red;
-        const green = this.colors.green;
-        const blue = this.colors.blue;
-        const yellow = this.colors.yellow;
-
-        this.addWall(vec3(44, 2, 2), vec3(-50, 0, 48), blue);
-        this.addWall(vec3(2, 2, 96), vec3(-50, 0, -48), red);
-        this.addWall(vec3(64, 2, 2), vec3(-50, 0, -50), blue);
-        this.addWall(vec3(2, 2, 18), vec3(12, 0, -48), green);
-        this.addWall(vec3(38, 2, 2), vec3(12, 0, -30), blue);
-        this.addWall(vec3(2, 2, 76), vec3(48, 0, -28), green);
-        this.addWall(vec3(48, 2, 2), vec3(2, 0, 48), blue);
-        this.addWall(vec3(2, 2, 18), vec3(2, 0, 30), green);
-        this.addWall(vec3(12, 2, 2), vec3(-8, 0, 28), blue);
-        this.addWall(vec3(2, 2, 18), vec3(-8, 0, 30), green);
+        this.addWall("multEW32", vec3(0, 0, 0));
+        this.addWall("multNS32", vec3(0, 0, 4));
+        this.addWall("multWE32", vec3(0, 0, 38));
+        this.addWall("multSN32", vec3(30, 0, 4));
     }
 
     // Emplace the inner edges of the racetrack
     createInnerBoundary() {
-        const red = this.colors.red;
-        const green = this.colors.green;
-        const blue = this.colors.blue;
-        const yellow = this.colors.yellow;
 
-        this.addWall(vec3(2, 2, 60), vec3(-28, 0, -32), red);
-        this.addWall(vec3(16, 2, 2), vec3(-26, 0, -32), green);
-        this.addWall(vec3(2, 2, 22), vec3(-10, 0, -32), red);
-        this.addWall(vec3(28, 2, 2), vec3(-8, 0, -12), yellow);
-        this.addWall(vec3(2, 2, 38), vec3(18, 0, -10), green);
-        this.addWall(vec3(44, 2, 2), vec3(-26, 0, 14), blue);
     }
 
     // Emplace miscellaneous obstacles
     createObstacles() {
-        const red = this.colors.red;
-        const green = this.colors.green;
-        const blue = this.colors.blue;
-        const yellow = this.colors.yellow;
-
-        this.addWall(vec3(4, 2, 2), vec3(24, 0, 4), blue);
-        this.addWall(vec3(4, 2, 2), vec3(40, 0, 4), red);
-        this.addWall(vec3(12, 2, 2), vec3(28, 0, 20), yellow);
     }
 
     /**
@@ -166,9 +207,10 @@ export class World {
         this.activeShapes["ground"] = {
             "shape": globalShapes.cube,
             "material": globalMaterials.default.override({
-                "color": hex_color("#666666")
+                "color": hex_color("#00FF00"),
+                "ambient": 1.0
             }),
-            "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(100, .5, 100))
+            "transform": Mat4.translation(60, -.5, 80).times(Mat4.scale(60, .5, 80))
         }
 
         this.createOuterBoundary();
