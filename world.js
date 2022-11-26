@@ -46,33 +46,42 @@ export class World {
         }
         this.materials = {
             mult32x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"),
-                ambient: 1.0,
+                color: hex_color("#000000"), ambient: 1.0,
                 texture: new Texture("assets/mult32x2.png")}),
             red2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"),
-                ambient: 1.0,
+                color: hex_color("#000000"), ambient: 1.0,
                 texture: new Texture("assets/red2x2.png")}),
             yellow2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"),
-                ambient: 1.0,
+                color: hex_color("#000000"), ambient: 1.0,
                 texture: new Texture("assets/yellow2x2.png")}),
             green2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"),
-                ambient: 1.0,
+                color: hex_color("#000000"), ambient: 1.0,
                 texture: new Texture("assets/green2x2.png")}),
             blue2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"),
-                ambient: 1.0,
-                texture: new Texture("assets/blue2x2.png")})
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/blue2x2.png")}),
+            red4x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/red4x2.png")}),
+            yellow4x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/yellow4x2.png")}),
+            green4x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/green4x2.png")}),
+            blue4x2: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/blue4x2.png")}),   
         }
         this.shapes = {
             multEW32: new Cube(),
             multNS32: new Cube(),
             multWE32: new Cube(),
             multSN32: new Cube(),
+            solidEW6: new Cube(),
+            solidNS6: new Cube()
         }
-        const eastWest32Array = [
+        this.shapes.multEW32.arrays.texture_coord = [
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Bottom face
             vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // Top face
             vec(0, 0), vec(1/16, 0), vec(0, 1), vec(1/16, 1),   // East face
@@ -80,7 +89,7 @@ export class World {
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // South face
             vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1)        // North face
         ];
-        const northSouth32Array = [
+        this.shapes.multNS32.arrays.texture_coord = [
             vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Bottom face
             vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Top face
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // East face
@@ -88,26 +97,38 @@ export class World {
             vec(15/16, 0), vec(1, 0), vec(15/16, 1), vec(1, 1), // South face
             vec(0, 0), vec(1/16, 0), vec(0, 1), vec(1/16, 1)    // North face
         ];
-        const westEast32Array = [
-            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // Bottom face
-            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),       // Top face
-            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1),   // East face
-            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1), // West face
-            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // South face
-            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1)        // North face
+        this.shapes.multWE32.arrays.texture_coord = [
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),             // Bottom face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),               // Top face
+            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1),       // East face
+            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1),   // West face
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),             // South face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1)                // North face
         ];
-        const southNorth32Array = [
-            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),         // Bottom face
-            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),         // Top face
-            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),         // East face
-            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),       // West face
-            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1), // South face
-            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1)    // North face
+        this.shapes.multSN32.arrays.texture_coord = [
+            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),             // Bottom face
+            vec(0, 0), vec(0, -1), vec(-1, 0), vec(-1, -1),             // Top face
+            vec(0, 0), vec(-1, 0), vec(0, -1), vec(-1, -1),             // East face
+            vec(0, 0), vec(1, 0), vec(0, -1), vec(1, -1),               // West face
+            vec(-15/16, 0), vec(-1, 0), vec(-15/16, -1), vec(-1, -1),   // South face
+            vec(0, 0), vec(-1/16, 0), vec(0, -1), vec(-1/16, -1)        // North face
         ];
-        this.shapes.multEW32.arrays.texture_coord = eastWest32Array;
-        this.shapes.multNS32.arrays.texture_coord = northSouth32Array;
-        this.shapes.multWE32.arrays.texture_coord = westEast32Array;
-        this.shapes.multSN32.arrays.texture_coord = southNorth32Array;
+        this.shapes.solidEW6.arrays.texture_coord = [
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Bottom face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Top face
+            vec(0, 0), vec(1/2, 0), vec(0, 1), vec(1/2, 1),     // East face
+            vec(0, 0), vec(1/2, 0), vec(0, 1), vec(1/2, 1),     // West face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // South face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1)          // North face
+        ];
+        this.shapes.solidNS6.arrays.texture_coord = [
+            vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Bottom face
+            vec(0, 0), vec(0, 1), vec(1, 0), vec(1, 1),         // Top face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // East face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // West face
+            vec(0, 0), vec(1/2, 0), vec(0, 1), vec(1/2, 1),     // South face
+            vec(0, 0), vec(1/2, 0), vec(0, 1), vec(1/2, 1)      // North face
+        ];
 
         switch (name) {
             default:
@@ -195,6 +216,46 @@ export class World {
                 shape = globalShapes.cube;
                 material = this.materials.blue2x2;
                 dims = vec3(2, 2, 2); break;
+            case "redEW4":
+            case "redWE4":
+                shape = this.shapes.solidEW6;
+                material = this.materials.red4x2;
+                dims = vec3(4, 2, 2); break;
+            case "redNS4":
+            case "redSN4":
+                shape = this.shapes.solidNS6;
+                material = this.materials.red4x2;
+                dims = vec3(2, 2, 4); break;
+            case "yellowEW4":
+            case "yellowWE4":
+                shape = this.shapes.solidEW6;
+                material = this.materials.yellow4x2;
+                dims = vec3(4, 2, 2); break;
+            case "yellowNS4":
+            case "yellowSN4":
+                shape = this.shapes.solidNS6;
+                material = this.materials.yellow4x2;
+                dims = vec3(2, 2, 4); break;
+            case "greenEW4":
+            case "greenWE4":
+                shape = this.shapes.solidEW6;
+                material = this.materials.green4x2;
+                dims = vec3(4, 2, 2); break;
+            case "greenNS4":
+            case "greenSN4":
+                shape = this.shapes.solidNS6;
+                material = this.materials.green4x2;
+                dims = vec3(2, 2, 4); break;
+            case "blueEW4":
+            case "blueWE4":
+                shape = this.shapes.solidEW6;
+                material = this.materials.blue4x2;
+                dims = vec3(4, 2, 2); break;
+            case "blueNS4":
+            case "blueSN4":
+                shape = this.shapes.solidNS6;
+                material = this.materials.blue4x2;
+                dims = vec3(2, 2, 4); break;
         }
 
         this.addBody({
@@ -220,6 +281,16 @@ export class World {
         this.addWall("yellow2", vec3(44, 0, 0));
         this.addWall("green2", vec3(48, 0, 0));
         this.addWall("blue2", vec3(52, 0, 0));
+
+        this.addWall("redEW4", vec3(56, 0, 0));
+        this.addWall("yellowEW4", vec3(56, 0, 4));
+        this.addWall("greenEW4", vec3(56, 0, 8));
+        this.addWall("blueEW4", vec3(56, 0, 12));
+
+        this.addWall("redNS4", vec3(0, 0, 50));
+        this.addWall("yellowNS4", vec3(4, 0, 50));
+        this.addWall("greenNS4", vec3(8, 0, 50));
+        this.addWall("blueNS4", vec3(12, 0, 50));
     }
 
     // Emplace the inner edges of the racetrack
