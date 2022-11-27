@@ -39,7 +39,7 @@ export class BruinKart extends Simulation {
 
         this.initial_camera_location = Mat4.look_at(
             vec3(0, 20, -50), // Initial Camera position (Backed up by 50 and up high by 20)
-            vec3(0, 0, 0), // Look at the origin
+            vec3(50, 0, 50), // Look at center of map
             vec3(0, 1, 0) // Top Vector (parallel with y)
         );
 
