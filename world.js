@@ -45,6 +45,9 @@ export class World {
             yellow: hex_color("#FFFF00")
         }
         this.materials = {
+            ground: new Material(new defs.Textured_Phong(1), {
+                color: hex_color("#000000"), ambient: 1.0,
+                texture: new Texture("assets/ground.png")}),
             mult32x2: new Material(new defs.Textured_Phong(1), {
                 color: hex_color("#000000"), ambient: 1.0,
                 texture: new Texture("assets/mult32x2.png")}),
@@ -71,9 +74,10 @@ export class World {
                 texture: new Texture("assets/green4x2.png")}),
             blue4x2: new Material(new defs.Textured_Phong(1), {
                 color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/blue4x2.png")}),   
+                texture: new Texture("assets/blue4x2.png")}),  
         }
         this.shapes = {
+            ground: new Cube(),
             multEW32: new Cube(),
             multNS32: new Cube(),
             multWE32: new Cube(),
@@ -81,6 +85,14 @@ export class World {
             solidEW6: new Cube(),
             solidNS6: new Cube()
         }
+        this.shapes.ground.arrays.texture_coord = [
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // Bottom face
+            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // Top face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // East face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // West face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // South face
+            vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1)        // North face    
+        ];
         this.shapes.multEW32.arrays.texture_coord = [
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),         // Bottom face
             vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // Top face
@@ -344,11 +356,8 @@ export class World {
     initDefault() {
         // Add the ground
         this.activeShapes["ground"] = {
-            "shape": globalShapes.cube,
-            "material": globalMaterials.default.override({
-                "color": hex_color("#FFFFFF"),
-                "ambient": 1.0
-            }),
+            "shape": this.shapes.ground,
+            "material": this.materials.ground,
             "transform": Mat4.translation(64, -.5, 128).times(Mat4.scale(64, .5, 128))
         }
 
