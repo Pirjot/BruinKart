@@ -37,43 +37,40 @@ export class World {
          */
         this.activeShapes = {};
         this.activeBodies = {};
+        this.lights = [new Light(vec4(64, 10, 128, 1), color(1, 1, 1, 1), 10000000)];
         this.numWalls = 0;
-        this.colors = {
-            red: hex_color("#FF0000"),
-            green: hex_color("#00FF00"),
-            blue: hex_color("#0000FF"),
-            yellow: hex_color("#FFFF00")
-        }
         this.materials = {
             ground: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0, 
                 texture: new Texture("assets/ground.png")}),
+            sun: new Material(new defs.Phong_Shader(), {
+                color: hex_color("#FFFFFF"), ambient: 1.0}),
             mult32x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/mult32x2.png")}),
             red2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/red2x2.png")}),
             yellow2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/yellow2x2.png")}),
             green2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/green2x2.png")}),
             blue2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/blue2x2.png")}),
             red4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/red4x2.png")}),
             yellow4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/yellow4x2.png")}),
             green4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/green4x2.png")}),
             blue4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
+                color: hex_color("#000000"), ambient: 0.50, diffuse: 1.0,
                 texture: new Texture("assets/blue4x2.png")}),  
         }
         this.shapes = {
@@ -280,6 +277,20 @@ export class World {
         this.numWalls++;
     }
 
+    moveLight(program_state) {
+        const t = program_state.animation_time / 1000;
+        const r = 200;
+        const y = r * Math.cos(t / 100);
+        const z = (r * Math.sin(t / 100) + 128);
+
+        this.lights = [new Light(vec4(64, y, z, 1), color(1, 1, 1, 1), 10000000000)];
+        this.activeShapes["sun"] = {
+            "shape": globalShapes.sphere,
+            "material": this.materials.sun,
+            "transform": Mat4.translation(64, y, z, 1).times(Mat4.scale(5, 5, 5))
+        }
+    }
+
     // Emplace the outer edges of the racetrack
     createOuterBoundary() {
         for (let x = 0; x < 128; x += 32) {
@@ -391,6 +402,7 @@ export class World {
      * @param {*} program_state 
      */
     drawWorld(context, program_state) {
+        this.moveLight(program_state);
         let shapes = Object.values(this.activeShapes);
 
         for (let i = 0; i < shapes.length; i++) {

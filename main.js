@@ -14,6 +14,7 @@ const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = ti
 globalThis.globalShapes = {
     cube: new defs.Cube(),
     model: new Model('assets/kart.obj'),
+    sphere: new defs.Subdivision_Sphere(4)
 }
 
 // Load all needed materials
@@ -158,11 +159,6 @@ export class BruinKart extends Simulation {
         const NEAR = .1;
         const FAR = 1000;
 
-        // TODO: Lights should be set by the world/bodies/karts
-        // Light attributes (by default, white and at given position)
-        const LIGHT_POS = vec4(0, 20, -50, 1);
-        const SIZE = 10000;
-        
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
@@ -174,7 +170,8 @@ export class BruinKart extends Simulation {
             ANGLE, context.width / context.height, NEAR, FAR);
 
         // Set lights
-        program_state.lights = [new Light(LIGHT_POS, color(1, 1, 1, 1), SIZE)];
+        this.world.moveLight(program_state);
+        program_state.lights = this.world.lights;
 
         this.initialized = true;
     }
