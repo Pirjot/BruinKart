@@ -87,7 +87,7 @@ export class World {
         }
         this.shapes.ground.arrays.texture_coord = [
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // Bottom face
-            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),       // Top face
+            vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),     // Top face
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // East face
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // West face
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // South face
@@ -184,13 +184,19 @@ export class World {
      * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
      * The corresponding wall will be named "Wall-i", where i is the number of walls that have
      * been placed using this function.
-     * @param {string} wall Specifies what kind of wall to build to determine color and dimensions
+     * @param {string} wall Specifies what kind of wall to build to determine 
+     *                      color, orientation, and dimensions. 
+     *                      For example, multEW32 is a multicolored 32x2x2 wall that runs east/west
+     *                      Valid walls are:
      *                      - multEW32, multNS32, multWE32, multSN32
+     *                      - redEW4, redNS4, red2
+     *                      - yellowEW4, yellowNS4, yellow2
+     *                      - greenEW4, greenNS4, green4
+     *                      - blueEW4, blueNS4, blue4
      * @param {vec3} location The x,y,z coordinates where the top left (least x, least z)
      *                        of the wall should be placed
      */
     addWall(wall, location) {
-
         const wallName = `Wall-${this.numWalls}`;
         let material = globalMaterials.default;
         let shape = globalShapes.cube;
@@ -228,43 +234,35 @@ export class World {
                 shape = globalShapes.cube;
                 material = this.materials.blue2x2;
                 dims = vec3(2, 2, 2); break;
-            case "redEW4":
-            case "redWE4":
+            case "redEW4": case "redWE4":
                 shape = this.shapes.solidEW6;
                 material = this.materials.red4x2;
                 dims = vec3(4, 2, 2); break;
-            case "redNS4":
-            case "redSN4":
+            case "redNS4": case "redSN4":
                 shape = this.shapes.solidNS6;
                 material = this.materials.red4x2;
                 dims = vec3(2, 2, 4); break;
-            case "yellowEW4":
-            case "yellowWE4":
+            case "yellowEW4": case "yellowWE4":
                 shape = this.shapes.solidEW6;
                 material = this.materials.yellow4x2;
                 dims = vec3(4, 2, 2); break;
-            case "yellowNS4":
-            case "yellowSN4":
+            case "yellowNS4": case "yellowSN4":
                 shape = this.shapes.solidNS6;
                 material = this.materials.yellow4x2;
                 dims = vec3(2, 2, 4); break;
-            case "greenEW4":
-            case "greenWE4":
+            case "greenEW4": case "greenWE4":
                 shape = this.shapes.solidEW6;
                 material = this.materials.green4x2;
                 dims = vec3(4, 2, 2); break;
-            case "greenNS4":
-            case "greenSN4":
+            case "greenNS4": case "greenSN4":
                 shape = this.shapes.solidNS6;
                 material = this.materials.green4x2;
                 dims = vec3(2, 2, 4); break;
-            case "blueEW4":
-            case "blueWE4":
+            case "blueEW4": case "blueWE4":
                 shape = this.shapes.solidEW6;
                 material = this.materials.blue4x2;
                 dims = vec3(4, 2, 2); break;
-            case "blueNS4":
-            case "blueSN4":
+            case "blueNS4": case "blueSN4":
                 shape = this.shapes.solidNS6;
                 material = this.materials.blue4x2;
                 dims = vec3(2, 2, 4); break;
