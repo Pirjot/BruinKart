@@ -18,12 +18,10 @@ const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = ti
  */
 export class World {
     /**
-     * Initialize and prepare the given 
+     * Initialize and prepare the given world.
      * @param {*} name 
      */
     constructor(name) {
-        this.initialized = false;
-
         /**
          * Example:
          * "ground": {
