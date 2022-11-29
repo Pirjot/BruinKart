@@ -68,7 +68,7 @@ export class Kart {
     }
 
     generateBody(options={}) {
-        // Generate a body, TODO: Add the model for the kart here
+        // Generate a body, TODO: do this using the options
         let model = globalShapes.model;
         let material = new Material(new defs.Phong_Shader(), {
             color: hex_color("#888888"),

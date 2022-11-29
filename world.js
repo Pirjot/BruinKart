@@ -35,6 +35,16 @@ export class World {
          */
         this.activeShapes = {};
         this.activeBodies = {};
+        this.lightsAdded = false;
+        
+        this.lights = [
+            {
+                "pos": [0, 20, -50, 1], 
+                "size": 10000, 
+                "col": [1, 1, 1, 1]
+            }
+        ];
+
         this.numWalls = 0;
         this.colors = {
             red: hex_color("#FF0000"),
@@ -140,6 +150,21 @@ export class World {
             vec(0, 0), vec(1/2, 0), vec(0, 1), vec(1/2, 1)      // North face
         ];
 
+
+        /**
+         * NEW: The Checkpoint system, we add functionality to the world to support checkpoints.
+         * 
+         * This array of checkpoints simply represents a body that is invisible that the kart collides with
+         * to increment its current checkpoint counter. We assume that the LAST checkpoint is the finish
+         * line.
+         * 
+         * NOTE: All important Checkpoint-related parameters will belong simply to this world class.
+         * 
+         * Then, all checkpoint related information is handled by the Kart.
+         */ 
+        this.checkpoints = [];
+
+        // Multiple Map Support (if we get to making multiple maps)
         switch (name) {
             default:
                 this.initDefault();
@@ -360,6 +385,39 @@ export class World {
         this.createOuterBoundary();
         this.createInnerBoundary();
         this.createObstacles();
+
+        this.initDefaultCheckpoints();
+    }
+
+    /**
+     * We add the checkpoint with a given leeway (otherwise collision may not be
+     * detected, make sure to put the leeway at +2 in either direction on the axis
+     * that the kart collides with the checkpoint)
+     * @param {*} location 
+     * @param {*} scale 
+     * @param {*} leeway 
+     */
+    addCheckpoint(location, scale, leeway) {
+        // Generate a body and place it using the params provided
+        let checkpoint = new Body(globalShapes.cube, globalMaterials.default, vec3(...scale));
+
+        // Make sure to emplace the body
+        checkpoint.emplace(Mat4.translation(...location), vec3(0, 0, 0), 0, vec3(0, 1, 0));
+
+        this.checkpoints.push({
+            "body": checkpoint,
+            "leeway": leeway
+        });
+    }
+
+    /**
+     * For simplicity, we only add 4 checkpoints that you need to pass through.
+     */
+    initDefaultCheckpoints() {
+        this.addCheckpoint([60, 1, 236], [1, 100, 30], [5, 50, 15]);
+        this.addCheckpoint([50, 1, 100], [30, 100, 1], [15, 50, 5]);
+        this.addCheckpoint([80, 1, 15], [1, 100, 30], [5, 50, 15]);
+        this.addCheckpoint([110, 1, 132], [30, 100, 1], [15, 50, 5]);
     }
 
     /**
@@ -383,12 +441,50 @@ export class World {
         }
     }
 
+
+    /**
+     * Add all the checkpoints to the global checkpoints array.
+     * @param {*} checkpoints 
+     */
+    initializeCheckpoints(checkpoints) {
+        for (let i = 0; i < this.checkpoints.length; i++) {
+            checkpoints.push(this.checkpoints[i]);
+        }
+    }
+
+
+    /**
+     * Add a light to the world with the given params
+     * @param {*} program_state
+     * @param {Number[]} pos 
+     * @param {Number[]} col Color values (from 0 to 1)
+     * @param {Number} size 
+     */
+    addLight(program_state, pos, col, size) {
+        program_state.lights.push(new Light(vec4(...pos), color(...col), size));
+    }
+
+    addAllLights(program_state) {
+        if (this.lightsAdded) {
+            return;
+        }
+
+        for (let light of this.lights) {
+            this.addLight(program_state, light["pos"], light["col"], light["size"])
+        }
+
+        this.lightsAdded = true;
+    }
+
     /**
      * Draw all the shapes (not the bodies, which are drawn in simulation)
      * @param {*} context 
      * @param {*} program_state 
      */
     drawWorld(context, program_state) {
+        // Add the Default Light (ported from the original world)
+        this.addAllLights(program_state);
+
         let shapes = Object.values(this.activeShapes);
 
         for (let i = 0; i < shapes.length; i++) {
