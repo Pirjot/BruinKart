@@ -19,12 +19,10 @@ const {Cube, Textured_Phong} = defs
  */
 export class World {
     /**
-     * Initialize and prepare the given 
+     * Initialize and prepare the given world.
      * @param {*} name 
      */
     constructor(name) {
-        this.initialized = false;
-
         /**
          * Example:
          * "ground": {
