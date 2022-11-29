@@ -75,6 +75,26 @@ export class BruinKart extends Simulation {
         this.kart.initializeBody(this.bodies);
         this.world.initializeBodies(this.bodies);
 
+        /**
+         * Checkpoint Logic
+         * 
+         * We have a finite set of checkpoints that we guarantee are of atleast size 2.
+         * 
+         * The last checkpoint represents the end of a lap.
+         * 
+         * We keep track of a checkpoint index, and solely test collision between the 
+         * kart's body and this invisible checkpoint (by not adding each checkpoint body
+         * to this.bodies, they are not rendered and the collision for the kart is not applied).
+         */
+        this.collider = {
+            intersect_test: Body.intersect_cube, 
+            points: new defs.Cube(), 
+        }
+        this.checkpoints = [];
+        this.world.initializeCheckpoints(this.checkpoints);
+        this.checkpointIndex = 0;
+        this.laps = 0;
+
 
         // We also have access to simulation time variables (check default Simulation Class)
 
@@ -128,15 +148,44 @@ export class BruinKart extends Simulation {
      * @param {*} dt 
      */
     update_state(dt) {
-        console.log(this.kartEnabled)
-
         if (this.kartEnabled) {
             // Let the kart update its body (hijacks the body controls with emplace)
             this.kart.update(dt);
 
             // Attach the camera to the kart if needed
             this.handleCameraChoice();
+
+            // Handle the checkpoints
+            this.handleCheckpoints();
         }
+    }
+
+    /**
+     * Handle the checkpoint logic.
+     * 
+     * We assume that the checkpoint index is < this.checkpoints.length always at the start.
+     */
+    handleCheckpoints() {
+        // We test if the kart is colliding with the selected checkpoint.
+        let nextCheckpoint = this.checkpoints[this.checkpointIndex];
+
+        let collider = this.collider;
+        collider.leeways = nextCheckpoint["leeway"];
+        let checkBody = nextCheckpoint["body"];
+
+        if (this.kart.body.check_if_colliding(checkBody, collider)) {
+            this.checkpointIndex++;
+        }
+
+        // Test if a lap has been completed
+        if (this.checkpointIndex == this.checkpoints.length) {
+            this.laps++;
+
+            this.checkpointIndex = 0;
+        }
+
+        // We tell the controller what's the current status
+        this.controller.updateStatus(this.checkpointIndex, this.laps);
     }
 
     /**
@@ -177,12 +226,7 @@ export class BruinKart extends Simulation {
         // Camera attributes
         const ANGLE = Math.PI / 4;
         const NEAR = .1;
-        const FAR = 1000;
-
-        // TODO: Lights should be set by the world/bodies/karts
-        // Light attributes (by default, white and at given position)
-        const LIGHT_POS = vec4(0, 20, -50, 1);
-        const SIZE = 10000;
+        const FAR = 1000;        
         
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
@@ -194,8 +238,8 @@ export class BruinKart extends Simulation {
         program_state.projection_transform = Mat4.perspective(
             ANGLE, context.width / context.height, NEAR, FAR);
         
-        // Set lights
-        program_state.lights = [new Light(LIGHT_POS, color(1, 1, 1, 1), SIZE)];
+        // NEW CHANGE: We move the ability to add lights to be specific to the world/kart
+        program_state.lights = [];
 
         this.initialized = true;
     }
@@ -233,8 +277,6 @@ export class BruinKart extends Simulation {
          * The GUI will handle moving through different "states" of the game.
          */
         this.controller.handle(context, program_state, this.currCamMatrix);
-
-        // TODO: GUI Logic here
     }
 
     /**

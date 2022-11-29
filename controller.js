@@ -15,7 +15,6 @@ const { vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color } = 
 /**
  * A timer object that supports pause functionality.
  * 
- * TODO: Add Split Time (Lap Functionality), retrieve best time from cache
  */
 class Timer {
     constructor() {
@@ -83,7 +82,7 @@ export class GUIController {
          * 
          * On boot up: we are always in "initial"
          * 
-         * On user choice of [P] we switch to: the .
+         * On user choice of [P] we switch to: Playing State (The Game).
          * 
          */
         
@@ -96,6 +95,9 @@ export class GUIController {
         // Keep track of all state specific variables
         // Variables for playing the game
         this.timer = new Timer();
+        this.laps = 0;
+        this.bestTime = Infinity;
+        this.checks = 0;
 
         // When we start, we draw the default layout of the initial menu, program will move through its other states automatically
         this.initMenu();
@@ -309,8 +311,18 @@ export class GUIController {
         // Build the GUI for the user playing the game
 
         // First build the timer string, we will have a listener to update it on every update call
-        this.timeString = this.createTextObj(this.createTransformFunc([-.5, 1.5, -3.99], [.1, .1, .1]), "TIME")
-        this.shapes.push(this.timeString);
+        this.timeString = this.createTextObj(this.createTransformFunc([-2.8, 1.5, -3.99], [.1, .1, 1]), "TIME")
+        
+        // Build the Best Time string in the same fashion
+        this.bestTimeString = this.createTextObj(this.createTransformFunc([-.7, 1.5, -3.99], [.1, .1, 1]), "BESTTIME")
+
+        // Build the Laps string in the same fashion
+        this.lapsString = this.createTextObj(this.createTransformFunc([2, 1.5, -3.99], [.1, .1, 1]), "LAPS")
+
+        // Build the Checks string in the same fashion
+        this.checkString = this.createTextObj(this.createTransformFunc([1.9, 1.3, -3.99], [.08, .08, 1]), "CHECKS")
+        
+        this.shapes.push(this.timeString, this.bestTimeString, this.lapsString, this.checkString);
 
         // Allow the user to start (after the countdown??)
         this.parent.enableKart();
@@ -326,7 +338,6 @@ export class GUIController {
         // First check if we are entering the pause menu or leaving it
         // We cannot pause the game from the initial menu
         if (this.state == "initial") {
-            console.log("Initial Menu Pause, Impossible");
             return;
         }
 
@@ -351,7 +362,6 @@ export class GUIController {
 
         if (this.state == "paused") {
             // We are leaving the paused state, we must be returning to the played state
-            console.log("Now leave the paused menu")
 
             // Reset the shapes
             this.shapes.splice(this.shapes.length - shapes.length, shapes.length);
@@ -429,8 +439,26 @@ export class GUIController {
             return;
         }
 
-        // First set the time accordingly
-        this.timeString["text"] = "Time: " + this.timer.getTime();
-        
+        // Update all of our parameters on the GUI accordingly
+        this.timeString["text"] = "Time: " + this.timer.getTime().toFixed(1);
+        this.bestTimeString["text"] = "Best Time: " + (this.bestTime == Infinity ? "N/A" : this.bestTime.toFixed(1));
+        this.lapsString["text"] = "Lap: " + this.laps;
+        this.checkString["text"] = "Check: " + this.checks;
+    }
+
+    /**
+     * Handles the Update of a given checkpoint and lap
+     * 
+     * Handle the case when the kart completes a lap on the track (calculate bestTime).
+     * @param {*} checkIndex
+     * @param {*} laps 
+     */
+    updateStatus(checkIndex, laps) {
+        if (this.laps != laps) { // The Kart JUST completed a new lap, check if they beat the record
+            this.bestTime = Math.min(this.bestTime, this.timer.getTime());
+            this.timer.resetTime();
+        }
+        this.laps = laps;
+        this.checks = checkIndex + 1;        
     }
 }
