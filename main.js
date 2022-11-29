@@ -16,7 +16,7 @@ const {vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_co
 globalThis.globalShapes = {
     cube: new defs.Cube(),
     model: new Model('assets/kart.obj'),
-    text: new Text_Line(20),
+    text: new Text_Line(40),
 }
 
 // Load all needed materials
@@ -53,10 +53,7 @@ export class BruinKart extends Simulation {
         // The Matrix used to transform the camera
         this.currCamMatrix = null;
 
-        // Load the GUI
-        this.controller = new GUIController(this);
-
-        // Load the Kart and the world in default positions
+        // Load the Kart and the world in default positions (the GUIController is enabled last to hijack these values)
         this.kart = new Kart(this);
         this.world = new World("default");
 
@@ -94,8 +91,24 @@ export class BruinKart extends Simulation {
         this.attachedCamera = "kartBack";
         this.cameraListener = false;
 
+        /**
+         * GUIController Flags and Helper Funcs, the GUIController will set/use these 
+         * defined immediately below, which is used to divert user
+         * input accordingly (i.e. disable the kart from moving if needed)
+         */
+
+        // If true, kart can be moved and camera buttons are active
+        this.kartEnabled = false;
+
+        this.disableKart = () => this.kartEnabled = false;
+        this.enableKart = () => this.kartEnabled = true;
+
+        // Load the GUI
+        this.controller = new GUIController(this);
         this.initialized = false;
     }
+
+    
 
     /**
      * Create the control_panel, (TODO: Fill in extra buttons if needed, otherwise
@@ -115,14 +128,16 @@ export class BruinKart extends Simulation {
      * @param {*} dt 
      */
     update_state(dt) {
-        // Let the kart update its body (hijacks the body controls with emplace)
-        this.kart.update(dt);
+        console.log(this.kartEnabled)
 
-        // Attach the camera to the kart if needed
-        this.handleCameraChoice();
+        if (this.kartEnabled) {
+            // Let the kart update its body (hijacks the body controls with emplace)
+            this.kart.update(dt);
+
+            // Attach the camera to the kart if needed
+            this.handleCameraChoice();
+        }
     }
-
-
 
     /**
      * Check if the user presses C, in which case we toggle on the camera status to
@@ -147,7 +162,6 @@ export class BruinKart extends Simulation {
             });
             this.cameraListener = true;
         }
-
     }
 
     /**
@@ -179,7 +193,7 @@ export class BruinKart extends Simulation {
         // Default Projection Transform
         program_state.projection_transform = Mat4.perspective(
             ANGLE, context.width / context.height, NEAR, FAR);
-
+        
         // Set lights
         program_state.lights = [new Light(LIGHT_POS, color(1, 1, 1, 1), SIZE)];
 
@@ -200,6 +214,12 @@ export class BruinKart extends Simulation {
         // Handle Camera
         this.attachCamera(context, program_state);
 
+        // Call our super to simulate physics 
+        super.display(context, program_state, !this.kartEnabled);
+
+        // Display all shapes in the world, this simulator will display all the bodies
+        this.world.drawWorld(context, program_state);
+
         /**
          * How we go about doing a consistent GUI:
          * 
@@ -212,16 +232,9 @@ export class BruinKart extends Simulation {
          * 
          * The GUI will handle moving through different "states" of the game.
          */
-        // this.controller.handle(context, program_state, this.currCamMatrix);
+        this.controller.handle(context, program_state, this.currCamMatrix);
 
         // TODO: GUI Logic here
-        
-
-        // Call our super to simulate physics 
-        super.display(context, program_state);
-
-        // Display all shapes in the world, this simulator will display all the bodies
-        this.world.drawWorld(context, program_state);
     }
 
     /**
