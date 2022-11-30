@@ -99,6 +99,38 @@ export class GUIController {
         this.bestTime = Infinity;
         this.checks = 0;
 
+        // By default, the world is "loaded" so we can actually start the GUI
+        this.worldReady = true;
+
+
+        /**
+         * NEW FEATURE! Ghost Mode.
+         * 
+         * We keep track of a currentGhost (keeping track of the user's progress)
+         * and a pastGhost with coordinates that we pass to the parent to display in
+         * the world.
+         * 
+         * Ghost objects look like this: {
+         *      time: [x, y, z] // The position
+         * }
+         * 
+         * Thats all! If we need to update past ghost we'll know simply by checking
+         * if the last time in the past ghost is > then the last time in current ghost when
+         * we finish a lap.
+         */
+        // We keep track of the last time we displayed the ghost.
+        this.lastGhostTime = -1;
+        this.currentGhost = {};
+        this.pastGhost = {};
+
+        // Save the options chosen by the user solely for saving to cache
+        this.options = {
+            world: "default",
+            kart: "BruinKart"
+        }
+
+        this.memory = {};
+
         // When we start, we draw the default layout of the initial menu, program will move through its other states automatically
         this.initMenu();
     }
@@ -231,11 +263,29 @@ export class GUIController {
 
         // Reset the timer
         this.timer.resetTime();
+
+        // Reset relevant variables
+        this.loadTimes();
     }
 
-    resetKart() {
+    /**
+     * Load our best time and ghost from memory.
+     */
+    loadTimes() {
+        this.bestTime = Infinity;
+        this.pastGhost = {};
+        this.lastGhostTime = -1;
+        
+    }
+
+    /**
+     * Reset the Kart in the parent (to put it in the right position and reload the model/texture)
+     * 
+     * @param {String} worldType default / classic
+     */
+    resetKart(worldType) {
         // Reset the Kart, (we can reset the entire world here if based on user parameters)
-        this.parent.kart = new Kart(this.parent, this.selectedKart);
+        this.parent.kart = new Kart(this.parent, this.selectedKart, worldType);
         let tempBodies = [];
         this.parent.kart.initializeBody(tempBodies);
         this.parent.bodies[0] = tempBodies[0];
@@ -257,6 +307,9 @@ export class GUIController {
 
         // Reset the GUI
         this.reset();
+
+        // Pause the timer for now, the countdown will reset it
+        this.timer.pause();
 
         // Disable the game, Enable it when the user chooses an option to start the game
         this.parent.disableKart();
@@ -352,6 +405,8 @@ export class GUIController {
         this.selectedKart = curr == "BruinKart" ? "Clown" :
                             curr == "Clown" ? "Toad" :
                                     "BruinKart";
+        
+        this.options.kart = this.selectedKart;
     }
 
     /**
@@ -360,6 +415,8 @@ export class GUIController {
     nextMap() {
         this.selectedMap = this.selectedMap == "default" ? "classic" :
                                                "default";
+        
+        this.options.world = this.selectedMap;
     }
 
     /**
@@ -373,17 +430,33 @@ export class GUIController {
 
         // Reset the state of the controller
         this.reset();
+        this.timer.pause();
 
         // Set the Kart accordingly (based on user option)
-        this.resetKart();
+        this.resetKart(this.selectedMap);
+
+        // Set the world to not ready so no GUI updates happen
+        this.worldReady = false;
 
         // Enable the kart for a bit, then disable it after the world is done loading
         this.parent.enableKart();
 
         // Asyncronously load the world (we assume the asynchronous part is handled on part of the world)
         await this.parent.loadWorld(this.selectedMap);
+        this.worldReady = true;
 
         this.parent.disableKart();
+
+        // Load the ghost memory
+        this.loadMemory();
+
+        // Set the parameters accordingly
+        if (Object.keys(this.memory).includes(this.selectedKart) && Object.keys(this.memory[this.selectedKart]).includes(this.selectedMap)) {
+            let ghostVals = this.memory[this.selectedKart][this.selectedMap];
+            this.bestTime = ghostVals.bestTime;
+            this.pastGhost = ghostVals.ghost;
+        }
+
 
         // Build the GUI for the user playing the game
 
@@ -524,6 +597,12 @@ export class GUIController {
      * @param {Mat4} cam_matrix
      */
     handle(context, program_state, cam_matrix) {
+        // Make sure the world is loaded before doing any onscreen GUI stuff
+        if (!this.worldReady) {
+            return;
+        }
+
+        // Handle the values of each state accordingly
         this.handleMenuState();
         this.handlePlayState();
         
@@ -567,10 +646,24 @@ export class GUIController {
         }
 
         // Update all of our parameters on the GUI accordingly
-        this.timeString["text"] = "Time: " + this.timer.getTime().toFixed(1);
+        let time = this.timer.getTime().toFixed(1);
+        this.timeString["text"] = "Time: " + time;
         this.bestTimeString["text"] = "Best Time: " + (this.bestTime == Infinity ? "N/A" : this.bestTime.toFixed(1));
         this.lapsString["text"] = "Lap: " + this.laps;
         this.checkString["text"] = "Check: " + this.checks;
+
+        // Save the position to currentGhost if last ghost time is greater than current time
+        if (time - this.lastGhostTime > 0) { // We have to write the condition this way because writing it normally doesn't work for some reason
+            // Update the time accordingly
+            this.currentGhost[time] = this.parent.kart.getLoc();
+
+            this.lastGhostTime = time;
+        }
+
+        // If we can, ask the parent to display a ghost model at the given coords
+        if (Object.keys(this.pastGhost).includes(time)) {
+            this.parent.displayGhostAt(this.pastGhost[time]);
+        }
     }
 
     /**
@@ -581,11 +674,51 @@ export class GUIController {
      * @param {*} laps 
      */
     updateStatus(checkIndex, laps) {
-        if (this.laps != laps) { // The Kart JUST completed a new lap, check if they beat the record
-            this.bestTime = Math.min(this.bestTime, this.timer.getTime());
+        if (laps > this.laps) { // The Kart JUST completed a new lap, check if they beat the record
+            if (this.timer.getTime() < this.bestTime) { // New PR in the gym
+                this.bestTime = this.timer.getTime();
+                
+                // We ALWAYS assume that beating the best time means you beat your past ghost
+                // This idea only works if we save bestTime over sessions in cookies or cache
+                this.pastGhost = this.currentGhost;
+
+                // Save the Best Time and Past Ghost to Cache / Memory and retrieve it on initGame
+                let kart = this.options.kart;
+                let world = this.options.world;
+                if (!Object.keys(this.memory).includes(kart)) {
+                    this.memory[kart] = {};
+                }
+                if (!Object.keys(this.memory[kart]).includes(world)) {
+                    this.memory[kart][world] = {}
+                }
+                this.memory[kart][world]["ghost"] = this.pastGhost;
+                this.memory[kart][world]["bestTime"] = this.bestTime;
+
+                this.saveMemory();
+            }
             this.timer.resetTime();
+
+            // Reset the Ghost Timer
+            this.currentGhost = {};
+            this.lastGhostTime = -1;
+
         }
         this.laps = laps;
         this.checks = checkIndex + 1;        
+    }
+
+
+    /**
+     * Save Memory to Cache
+     */
+    saveMemory() {
+        localStorage.setItem("memory", JSON.stringify(this.memory));
+    }
+
+    /**
+     * Load Memory from Cache
+     */
+    loadMemory() {
+        this.memory = JSON.parse(localStorage.getItem("memory")) || {};
     }
 }

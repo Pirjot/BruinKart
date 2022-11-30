@@ -36,9 +36,16 @@ export class Kart {
      * kart's body may collide with.
      * @param {BruinKart} game 
      * @param {String} kartType BruinKart / Clown / Toad
+     * @param {String} worldType default / classic
      */
-    constructor(game, kartType="BruinKart") {
+    constructor(game, kartType="BruinKart", worldType="default") {
         this.game = game;
+
+        // Set the default position based on the world we are in
+        this.startingPosition = [112, 1, 128];
+        if (worldType == "classic") {
+            this.startingPosition = [-40, 1, 0];
+        }
         
         // Provide ability to alter Kart default parameters through options
         this.generateBody(kartType);
@@ -68,6 +75,9 @@ export class Kart {
             points: new defs.Cube(), 
             leeways: [1, 1, 1]
         }
+
+        // Position
+        this.lastCenter = null;
     }
 
     /**
@@ -128,7 +138,7 @@ export class Kart {
         }
 
         let scale = vec3(1, 1, 1);
-        let location = Mat4.translation(112, 1, 128);
+        let location = Mat4.translation(...this.startingPosition);
         let velocity = vec3(0, 0, 0);
 
         this.body = new Body(model, material, scale);
@@ -169,6 +179,8 @@ export class Kart {
         
         // Apply emplace
         this.body.emplace(location, linear_velocity, 0);
+
+        this.lastCenter = this.body.center;
 
         // Handle collisions with other bodies in the game world (Maybe send the location and linear_velocity to the collisions?)
         this.handleCollisions(location);
@@ -281,5 +293,19 @@ export class Kart {
         drawn = Mat4.inverse(drawn);
 
         return drawn;
+    }
+
+    /**
+     * Return the current location and angle as a 4 x 1 array.
+     */
+    getLoc() {
+        if (!this.lastCenter) {
+            return [999, 999, 999, 0];
+        }
+        
+        let info = [...this.lastCenter];
+        info.push(this.angle);
+        
+        return info;
     }
 }

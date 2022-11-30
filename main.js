@@ -152,6 +152,9 @@ export class BruinKart extends Simulation {
         // Load the GUI
         this.controller = new GUIController(this);
         this.initialized = false;
+
+        // NEW FEATURE: Initialize the Ghost variables
+        this.ghostPos = null;
     }
 
     /**
@@ -163,6 +166,7 @@ export class BruinKart extends Simulation {
     async loadWorld(worldName) {
         // Clear all bodies relevant to current world
         this.bodies.splice(1, this.bodies.length - 1);
+        this.ghostPos = null;
 
         // Get the world
         this.world = new World(worldName);
@@ -171,9 +175,10 @@ export class BruinKart extends Simulation {
         this.world.initializeBodies(this.bodies);
         this.setupCheckpoints();
 
-        // TODO: Asynchronous FLAG here
+        const delay = (ms = 500) => new Promise(callMeToResolve => setTimeout(callMeToResolve, ms));
 
-        return;
+        // We don't have a way to actually measure how long it takes it to load the textures so we just guess it take 1/10 second atmost
+        return await delay(100);
     }
 
     /**
@@ -181,7 +186,7 @@ export class BruinKart extends Simulation {
      * read from the keyboard manually using JS)
      */
     make_control_panel() {
-        // this.key_triggered_button("Default", ["b"], () => this.testFunc);
+        this.key_triggered_button("Clear Memory (PERMANENT!)", ["r"], () => confirm("Are you sure you would like to clear all your past best times?") ? localStorage.clear() : null);
         // super.make_control_panel();
     }
 
@@ -324,6 +329,22 @@ export class BruinKart extends Simulation {
          * The GUI will handle moving through different "states" of the game.
          */
         this.controller.handle(context, program_state, this.currCamMatrix);
+
+        /**
+         * Ghost mode, simply draw a noncollidable shape at the position if
+         * it exists.
+         */
+        if (this.ghostPos) {
+            // Generate the model transform
+            let model_transform = Mat4.identity().times(
+                Mat4.translation(this.ghostPos[0], this.ghostPos[1], this.ghostPos[2])).times(
+                Mat4.rotation(this.ghostPos[3], 0, 1, 0)
+            );
+
+            // We grab the model to display directly from the current kart's body
+            this.kart.body.shape.draw(context, program_state, model_transform, this.kart.body.material);
+        }
+
     }
 
     /**
@@ -345,5 +366,15 @@ export class BruinKart extends Simulation {
                 this.currCamMatrix = this.initial_camera_location;
                 program_state.set_camera(this.initial_camera_location);
         }
+    }
+
+    /**
+     * Display a ghost at the given coordinates in display.
+     * 
+     * We simply set the parameters here, if they exist during a display
+     * call then they are displayed
+     */
+    displayGhostAt(coords) {
+        this.ghostPos = coords;
     }
 }
