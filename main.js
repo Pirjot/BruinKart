@@ -1,4 +1,5 @@
 import {defs, tiny} from './examples/common.js';
+import { Text_Line } from './examples/text-demo.js';
 import {Body, Simulation} from './physics.js';
 import {Kart} from './kart.js';
 import {World} from './world.js';
@@ -7,6 +8,9 @@ import {Kart1, StadiumLight, Tire, Kart2, Kart3} from './model.js';
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color, Texture} = tiny;
+import {GUIController} from './controller.js';
+
+
 
 // Globally initialize the needed shapes and materials for use
 
@@ -19,6 +23,7 @@ globalThis.globalShapes = {
     kart2: new Kart2(),
     kart3: new Kart3(),
     stadium_light: new StadiumLight(),
+    text: new Text_Line(40),
 }
 
 // Load all needed materials
@@ -40,6 +45,10 @@ globalThis.globalMaterials = {
         color: color(0,0,0, 1),
         ambient: 1, diffusivity: 1, specularity: 0.5, texture: new Texture('assets/tire.png')
     }),
+    text_mat: new Material(new defs.Textured_Phong(1), {
+        ambient: 1, diffusivity: 0, specularity: 0,
+        texture: new Texture("assets/text.png")
+    })
 }
 
 
@@ -64,7 +73,10 @@ export class BruinKart extends Simulation {
             vec3(0, 1, 0) // Top Vector (parallel with y)
         );
 
-        // Load the Kart and the world in default positions
+        // The Matrix used to transform the camera
+        this.currCamMatrix = null;
+
+        // Load the Kart and the world in default positions (the GUIController is enabled last to hijack these values)
         this.kart = new Kart(this);
         this.world = new World("default");
 
@@ -86,6 +98,26 @@ export class BruinKart extends Simulation {
         this.kart.initializeBody(this.bodies);
         this.world.initializeBodies(this.bodies);
 
+        /**
+         * Checkpoint Logic
+         * 
+         * We have a finite set of checkpoints that we guarantee are of atleast size 2.
+         * 
+         * The last checkpoint represents the end of a lap.
+         * 
+         * We keep track of a checkpoint index, and solely test collision between the 
+         * kart's body and this invisible checkpoint (by not adding each checkpoint body
+         * to this.bodies, they are not rendered and the collision for the kart is not applied).
+         */
+        this.collider = {
+            intersect_test: Body.intersect_cube, 
+            points: new defs.Cube(), 
+        }
+        this.checkpoints = [];
+        this.world.initializeCheckpoints(this.checkpoints);
+        this.checkpointIndex = 0;
+        this.laps = 0;
+
 
         // We also have access to simulation time variables (check default Simulation Class)
 
@@ -93,27 +125,41 @@ export class BruinKart extends Simulation {
          * Attached Camera position, can be behind the kart or in front of for now.
          * 
          * Values:
-         * default
+         * default (Deprecated)
          * kartBack
          * kartFront
          * 
          * (Check this.attachCamera func to see how this is handled)
          */
-        this.attachedCamera = "default";
+        this.attachedCamera = "kartBack";
         this.cameraListener = false;
 
+        /**
+         * GUIController Flags and Helper Funcs, the GUIController will set/use these 
+         * defined immediately below, which is used to divert user
+         * input accordingly (i.e. disable the kart from moving if needed)
+         */
+
+        // If true, kart can be moved and camera buttons are active
+        this.kartEnabled = false;
+
+        this.disableKart = () => this.kartEnabled = false;
+        this.enableKart = () => this.kartEnabled = true;
+
+        // Load the GUI
+        this.controller = new GUIController(this);
         this.initialized = false;
     }
+
+    
 
     /**
      * Create the control_panel, (TODO: Fill in extra buttons if needed, otherwise
      * read from the keyboard manually using JS)
      */
     make_control_panel() {
-        this.key_triggered_button("Previous collider", ["b"], this.decrease);
-        this.key_triggered_button("Next", ["n"], this.increase);
-        this.new_line();
-        super.make_control_panel();
+        // this.key_triggered_button("Default", ["b"], () => this.testFunc);
+        // super.make_control_panel();
     }
 
     /**
@@ -125,17 +171,45 @@ export class BruinKart extends Simulation {
      * @param {*} dt 
      */
     update_state(dt) {
-        // Let the kart update its body (hijacks the body controls with emplace)
-        this.kart.update(dt);
+        if (this.kartEnabled) {
+            // Let the kart update its body (hijacks the body controls with emplace)
+            this.kart.update(dt);
 
-        // TODO: Pass the Kart / World to any external controllers as needed
-        // this.GUIController.update(this.kart);
+            // Attach the camera to the kart if needed
+            this.handleCameraChoice();
 
-        // Attach the camera to the kart if needed
-        this.handleCameraChoice();
+            // Handle the checkpoints
+            this.handleCheckpoints();
+        }
     }
 
+    /**
+     * Handle the checkpoint logic.
+     * 
+     * We assume that the checkpoint index is < this.checkpoints.length always at the start.
+     */
+    handleCheckpoints() {
+        // We test if the kart is colliding with the selected checkpoint.
+        let nextCheckpoint = this.checkpoints[this.checkpointIndex];
 
+        let collider = this.collider;
+        collider.leeways = nextCheckpoint["leeway"];
+        let checkBody = nextCheckpoint["body"];
+
+        if (this.kart.body.check_if_colliding(checkBody, collider)) {
+            this.checkpointIndex++;
+        }
+
+        // Test if a lap has been completed
+        if (this.checkpointIndex == this.checkpoints.length) {
+            this.laps++;
+
+            this.checkpointIndex = 0;
+        }
+
+        // We tell the controller what's the current status
+        this.controller.updateStatus(this.checkpointIndex, this.laps);
+    }
 
     /**
      * Check if the user presses C, in which case we toggle on the camera status to
@@ -147,9 +221,8 @@ export class BruinKart extends Simulation {
          * @param {*} currCam 
          */
         function nextCam(currCam) {
-            return currCam == "default"   ? "kartBack" : 
-                   currCam == "kartBack" ? "kartFront" : 
-                                            "default";
+            return currCam == "kartBack" ? "kartFront" : 
+                                            "kartBack";
         }
 
         if (!this.cameraListener) {
@@ -161,7 +234,6 @@ export class BruinKart extends Simulation {
             });
             this.cameraListener = true;
         }
-
     }
 
     /**
@@ -177,12 +249,7 @@ export class BruinKart extends Simulation {
         // Camera attributes
         const ANGLE = Math.PI / 4;
         const NEAR = .1;
-        const FAR = 1000;
-
-        // TODO: Lights should be set by the world/bodies/karts
-        // Light attributes (by default, white and at given position)
-        const LIGHT_POS = vec4(0, 20, -50, 1);
-        const SIZE = 10000;
+        const FAR = 1000;        
         
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
@@ -193,9 +260,9 @@ export class BruinKart extends Simulation {
         // Default Projection Transform
         program_state.projection_transform = Mat4.perspective(
             ANGLE, context.width / context.height, NEAR, FAR);
-
-        // Set lights
-        program_state.lights = [new Light(LIGHT_POS, color(1, 1, 1, 1), SIZE)];
+        
+        // NEW CHANGE: We move the ability to add lights to be specific to the world/kart
+        program_state.lights = [];
 
         this.initialized = true;
     }
@@ -208,17 +275,31 @@ export class BruinKart extends Simulation {
      * @param {*} program_state
      */
     display(context, program_state) {
-        // Always first setup the defaults, we want the lights to be ready
+        // Always first setup the defaults
         this.setupDefaults(context, program_state);
-        
+
+        // Handle Camera
+        this.attachCamera(context, program_state);
+
         // Call our super to simulate physics 
-        super.display(context, program_state);
+        super.display(context, program_state, !this.kartEnabled);
 
         // Display all shapes in the world, this simulator will display all the bodies
         this.world.drawWorld(context, program_state);
 
-        // Handle Camera
-        this.attachCamera(context, program_state);
+        /**
+         * How we go about doing a consistent GUI:
+         * 
+         * Simply treat the "GUI" as a collection of shapes, and pass all mouse
+         * inputs from the user to the GUI to handle. If the GUI thinks its important
+         * to handle, it can call this object's relevant function.
+         * 
+         * Also, we override user input and simulation as needed depending on the
+         * parameters of the GUI.
+         * 
+         * The GUI will handle moving through different "states" of the game.
+         */
+        this.controller.handle(context, program_state, this.currCamMatrix);
     }
 
     /**
@@ -229,12 +310,15 @@ export class BruinKart extends Simulation {
     attachCamera(context, program_state) {
         switch (this.attachedCamera) {
             case "kartBack":
+                this.currCamMatrix = this.kart.getBackCam();
                 program_state.set_camera(this.kart.getBackCam());
                 break;
             case "kartFront":
+                this.currCamMatrix = this.kart.getFrontCam();
                 program_state.set_camera(this.kart.getFrontCam());
                 break;
             default: 
+                this.currCamMatrix = this.initial_camera_location;
                 program_state.set_camera(this.initial_camera_location);
         }
     }

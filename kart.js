@@ -70,6 +70,7 @@ export class Kart {
         // Generate a body, TODO: Add the model for the kart here
         let model = globalShapes.kart1;
         let material = globalMaterials.kart1_texture;
+
         let scale = vec3(1, 1, 1);
         let location = Mat4.translation(112, 1, 128);
         let velocity = vec3(0, 0, 0);

@@ -66,9 +66,15 @@ export class Simulation extends Scene {
         });
     }
 
-    display(context, program_state) {
+    /**
+     * If freeze is true, do not simulate the environment.
+     * @param {*} context 
+     * @param {*} program_state 
+     * @param {*} freeze 
+     */
+    display(context, program_state, freeze=false) {
         // display(): advance the time and state of our whole simulation.
-        if (program_state.animate)
+        if (program_state.animate && !freeze)
             this.simulate(program_state.animation_delta_time);
         // Draw each shape at its current location:
         for (let b of this.bodies)
@@ -163,7 +169,7 @@ export class Body {
         // Nothing collides with itself.
         // Convert sphere b to the frame where a is a unit sphere:
         // const T = this.inverse.times(b.drawn_location, this.temp_matrix);
-
+    
         let bInverse = Mat4.inverse(b.drawn_location);
         const T = bInverse.times(this.drawn_location, this.temp_matrix);
 
