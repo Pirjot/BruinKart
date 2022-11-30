@@ -20,7 +20,7 @@ const {Cube, Textured_Phong} = defs
 export class World {
     /**
      * Initialize and prepare the given world.
-     * @param {*} name 
+     * @param {*} name default / classic
      */
     constructor(name) {
         /**

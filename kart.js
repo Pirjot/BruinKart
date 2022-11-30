@@ -35,23 +35,27 @@ export class Kart {
      * Using the given game we can check all bodies that the
      * kart's body may collide with.
      * @param {BruinKart} game 
+     * @param {String} kartType BruinKart / Clown / Toad
      */
-    constructor(game, options={}) {
+    constructor(game, kartType="BruinKart") {
         this.game = game;
         
-        // TODO: Provide ability to alter Kart default parameters through options
-        this.generateBody(options);
+        // Provide ability to alter Kart default parameters through options
+        this.generateBody(kartType);
 
         // Set default values for angles and movement parameters (acceleration, max_speed, etc.)
-        this.maxVelocityF = 10; // The max speed forward
-        this.maxVelocityB = -5; // The max speed backward
-        this.acceleration = .05; // Acceleration per dt forward
+        this.maxVelocityF = 15; // The max speed forward
+        this.maxVelocityB = -7; // The max speed backward
+        this.acceleration = .04; // Acceleration per dt forward
         this.slowDownSpeed = .01;
 
         // Angle Defaults
         this.maxDeltaAngle = Math.PI / 8; // The maximum movement that the kart can turn
         this.shortDeltaAngle = Math.PI / 128; // How much the kart can change its angle per frame
         this.slowDownAngle = Math.PI / 512;
+
+        // Then change the above values if based on the selected kartType
+        this.setParams(kartType);
 
         // Update params per frame
         this.angle = 0;
@@ -66,10 +70,62 @@ export class Kart {
         }
     }
 
-    generateBody(options={}) {
-        // Generate a body, TODO: Add the model for the kart here
+    /**
+     * Taking the kartType into account, set the relevant parameters.
+     * 
+     * @param {*} kartType 
+     */
+    setParams(kartType) {
+        if (kartType == "BruinKart") {
+            return;
+        }
+
+        switch (kartType) {
+            case "Clown":
+                this.maxVelocityF = 30;
+                this.maxVelocityB = -10;
+                this.acceleration = .02;
+
+                this.shortDeltaAngle = Math.PI / 700;
+                break;
+            case "Toad":
+                this.maxVelocityF = 10;
+                this.maxVelocityB = -3;
+                this.acceleration = .1;
+
+                this.shortDeltaAngle = Math.PI / 90;
+                break;
+            default:
+                return;
+        }
+
+        return;
+    }
+
+    /**
+     * Taking the kartType into account, load the corresponding model.
+     * 
+     * @param {String} kartType 
+     */
+    generateBody(kartType) {
+        // Generate a body accordingly
+        
+        // First set the defaults, then change if another option was chosen
         let model = globalShapes.kart1;
         let material = globalMaterials.kart1_texture;
+
+        switch (kartType) {
+            case "Clown":
+                model = globalShapes.kart2;
+                material = globalMaterials.kart2_texture;
+                break;
+            case "Toad":
+                model = globalShapes.kart3;
+                material = globalMaterials.kart3_texture;
+                break;
+            default:
+                break;
+        }
 
         let scale = vec3(1, 1, 1);
         let location = Mat4.translation(112, 1, 128);

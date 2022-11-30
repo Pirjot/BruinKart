@@ -109,14 +109,17 @@ export class BruinKart extends Simulation {
          * kart's body and this invisible checkpoint (by not adding each checkpoint body
          * to this.bodies, they are not rendered and the collision for the kart is not applied).
          */
-        this.collider = {
-            intersect_test: Body.intersect_cube, 
-            points: new defs.Cube(), 
-        }
-        this.checkpoints = [];
-        this.world.initializeCheckpoints(this.checkpoints);
-        this.checkpointIndex = 0;
-        this.laps = 0;
+        this.setupCheckpoints = () => {
+            this.collider = {
+                intersect_test: Body.intersect_cube, 
+                points: new defs.Cube(), 
+            }
+            this.checkpoints = [];
+            this.world.initializeCheckpoints(this.checkpoints);
+            this.checkpointIndex = 0;
+            this.laps = 0;
+        };
+        this.setupCheckpoints();
 
 
         // We also have access to simulation time variables (check default Simulation Class)
@@ -151,7 +154,27 @@ export class BruinKart extends Simulation {
         this.initialized = false;
     }
 
-    
+    /**
+     * Asynchronously load a world and return when it has been processed on screen.
+     * 
+     * 
+     * @param {*} worldName 
+     */
+    async loadWorld(worldName) {
+        // Clear all bodies relevant to current world
+        this.bodies.splice(1, this.bodies.length - 1);
+
+        // Get the world
+        this.world = new World(worldName);
+
+        // Load the bodies and checkpoints
+        this.world.initializeBodies(this.bodies);
+        this.setupCheckpoints();
+
+        // TODO: Asynchronous FLAG here
+
+        return;
+    }
 
     /**
      * Create the control_panel, (TODO: Fill in extra buttons if needed, otherwise
@@ -222,6 +245,7 @@ export class BruinKart extends Simulation {
          */
         function nextCam(currCam) {
             return currCam == "kartBack" ? "kartFront" : 
+                   currCam == "kartFront" ? "default" :
                                             "kartBack";
         }
 
