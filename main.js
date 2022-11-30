@@ -2,23 +2,44 @@ import {defs, tiny} from './examples/common.js';
 import {Body, Simulation} from './physics.js';
 import {Kart} from './kart.js';
 import {World} from './world.js';
-import {Model} from './model.js';
+import {Kart1, StadiumLight, Tire, Kart2, Kart3} from './model.js';
 
 
 // Pull these names into this module's scope for convenience:
-const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
+const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color, Texture} = tiny;
 
 // Globally initialize the needed shapes and materials for use
 
 // Load all necessary shapes onto the GPU
 globalThis.globalShapes = {
+    axle: new defs.Cylindrical_Tube(5,100),
     cube: new defs.Cube(),
-    model: new Model('assets/kart.obj'),
+    tire: new Tire(),
+    kart1: new Kart1(),
+    kart2: new Kart2(),
+    kart3: new Kart3(),
+    stadium_light: new StadiumLight(),
 }
 
 // Load all needed materials
 globalThis.globalMaterials = {
-    default: new Material(new defs.Phong_Shader())
+    default: new Material(new defs.Phong_Shader()),
+    kart1_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart1.png")
+    }),
+    kart2_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart2.png")
+    }),
+    kart3_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart3.png")
+    }),
+    tire_texture:  new Material(new defs.Phong_Shader, {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: 1, specularity: 0.5, texture: new Texture('assets/tire.png')
+    }),
 }
 
 

@@ -43,8 +43,8 @@ class Prism extends Shape{
     }
 }
 
-export class Model extends Shape {                                   // **Shape_From_File** is a versatile standalone Shape that imports
-                                                                               // all its arrays' data from an .obj 3D model file.
+class Shape_From_File extends Shape {                                   // **Shape_From_File** is a versatile standalone Shape that imports
+    // all its arrays' data from an .obj 3D model file.
     constructor(filename) {
         super("position", "normal", "texture_coord");
         // Begin downloading the mesh. Once that completes, return
@@ -140,24 +140,100 @@ export class Model extends Shape {                                   // **Shape_
     draw(context, program_state, model_transform, material) {               // draw(): Same as always for shapes, but cancel all
         // attempts to draw the shape before it loads:
         if (this.ready)
-            super.draw(context, program_state, model_transform.times(Mat4.translation(0,-0.35,0)).times(Mat4.rotation(-Math.PI/2,0,1,0)), material);
+            super.draw(context, program_state, model_transform, material);
     }
 }
-/*export class Model extends Shape{
+
+export class StadiumLight extends Shape_From_File{
     constructor() {
-        super("position", "normal", "texture_coord");
-
-        //Front Bumper
-        defs.Tetrahedron.insert_transformed_copy_into(this,[], Mat4.translation(1,-.5,4));
-        defs.Tetrahedron.insert_transformed_copy_into(this,[],
-            Mat4.translation(-1,-.5,4).times(Mat4.rotation(-Math.PI/2,0,1,0)));
-
-        Prism.insert_transformed_copy_into(this, [], Mat4.scale(1,0.5,1));
-        Wedge.insert_transformed_copy_into(this,[],
-            Mat4.translation(0,0,4.5).times(Mat4.scale(1,0.5,0.5)));
-        Wedge.insert_transformed_copy_into(this, [],
-            Mat4.scale(2,0.5))
+        super('assets/stadium_light.obj');
     }
-}*/
+}
+
+export class Tire extends Shape_From_File{
+    constructor() {
+        super('assets/tire.obj');
+    }
+    draw(context, program_state,model_transform, material){
+        if(this.ready){
+            super.draw(context, program_state, model_transform.times(Mat4.rotation(Math.PI/2, 0, 0, 1)), material);
+        }
+    }
+}
+
+export class Kart1 extends Shape_From_File{
+
+    constructor() {
+        super('assets/kart1.obj');
+
+    }
+    draw(context, program_state, model_transform, material) {               // draw(): Same as always for shapes, but cancel all
+        // attempts to draw the shape before it loads:
+        if (this.ready){
+            super.draw(context, program_state, model_transform.times(Mat4.translation(0,-0.35,0)).times(Mat4.rotation(-Math.PI/2,0,1,0)), material);
+            globalShapes.tire.draw(context,program_state, model_transform.times(Mat4.translation(0.75,-0.65,0.68)).times(Mat4.scale(0.35,0.3,0.3)), globalMaterials.tire_texture);
+            globalShapes.tire.draw(context,program_state, model_transform.times(Mat4.translation(-0.75,-0.65,0.68)).times(Mat4.scale(0.35,0.3,0.3)), globalMaterials.tire_texture);
+            globalShapes.axle.draw(context,program_state, model_transform.times(Mat4.translation(0,-0.65,0.68)).times(Mat4.rotation(Math.PI/2, 0,1,0)).times(Mat4.scale(0.075,0.075,1.5)),
+                globalMaterials.tire_texture.override({color: color(0.22,0.22,0.22,1)}));
+            globalShapes.tire.draw(context,program_state, model_transform.times(Mat4.translation(-0.8,-0.58,-0.95)).times(Mat4.scale(0.55,0.35,0.35)), globalMaterials.tire_texture);
+            globalShapes.tire.draw(context,program_state, model_transform.times(Mat4.translation(0.8,-0.58,-0.95)).times(Mat4.scale(0.55,0.35,0.35)), globalMaterials.tire_texture);
+            globalShapes.axle.draw(context,program_state, model_transform.times(Mat4.translation(0,-0.58,-0.95)).times(Mat4.rotation(Math.PI/2,0,1,0)).times(Mat4.scale(0.075,0.075,1.25)),
+                globalMaterials.tire_texture.override({color: color(0.22,0.22,0.22,1)}));
+
+
+        }
+    }
+
+}
+
+export class Kart2 extends Shape_From_File{
+
+    constructor() {
+        super('assets/kart2.obj');
+
+    }
+    draw(context, program_state, model_transform, material) {               // draw(): Same as always for shapes, but cancel all
+        // attempts to draw the shape before it loads:
+        if (this.ready) {
+            super.draw(context, program_state, model_transform.times(Mat4.translation(0, 0.2, 0)).times(Mat4.rotation(Math.PI, 0, 1, 0)), material);
+            globalShapes.axle.draw(context, program_state, model_transform.times(Mat4.translation(0,-0.45,0.65)).times(Mat4.rotation(Math.PI/2,0,1,0)).times(Mat4.scale(0.1,0.1,2.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(1.2,-0.45,0.65)).times(Mat4.scale(0.4,0.4,0.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(-1.2,-0.45,0.65)).times(Mat4.scale(0.4,0.4,0.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+            globalShapes.axle.draw(context, program_state, model_transform.times(Mat4.translation(0,-0.45,-0.75)).times(Mat4.rotation(Math.PI/2,0,1,0)).times(Mat4.scale(0.1,0.1,2.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(1.2,-0.45,-0.75)).times(Mat4.scale(0.4,0.4,0.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(-1.2,-0.45,-0.75)).times(Mat4.scale(0.4,0.4,0.4)),
+                globalMaterials.tire_texture.override({color: color(0.78,0.4,0.14,1), ambient: 0.6}));
+        }
+    }
+
+}
+
+export class Kart3 extends Shape_From_File{
+    constructor() {
+        super('assets/kart3.obj');
+
+    }
+
+    draw(context, program_state, model_transform, material) {               // draw(): Same as always for shapes, but cancel all
+        // attempts to draw the shape before it loads:
+        if (this.ready) {
+            super.draw(context, program_state, model_transform.times(Mat4.translation(0, 0.1, 0)).times(Mat4.rotation(Math.PI, 0, 1, 0)), material);
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(0.7,-0.75,0.75)).times(Mat4.scale(0.2,0.2,0.2)),
+                globalMaterials.tire_texture.override({color: color(0.8,0,0,1), ambient: 0.8}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(-0.7,-0.75,0.75)).times(Mat4.scale(0.2,0.2,0.2)),
+                globalMaterials.tire_texture.override({color: color(0.8,0,0,1), ambient: 0.8}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(0.7,-0.75,-0.45)).times(Mat4.scale(0.2,0.2,0.2)),
+                globalMaterials.tire_texture.override({color: color(0.8,0,0,1), ambient: 0.8}));
+            globalShapes.tire.draw(context, program_state, model_transform.times(Mat4.translation(-0.7,-0.75,-0.45)).times(Mat4.scale(0.2,0.2,0.2)),
+                globalMaterials.tire_texture.override({color: color(0.8,0,0,1), ambient: 0.8}));
+        }
+    }
+}
+
 
 
