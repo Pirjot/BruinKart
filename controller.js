@@ -323,7 +323,7 @@ export class GUIController {
             {
                 "name": "Background Cube",
                 "obj": this.createShapeObj(this.createTransformFunc([0, 0, -5], [1.8 * 2, 2, 1]), 
-                new Material(new defs.Textured_Phong(1), {color: hex_color("#000000"), ambient: 1.0, texture: new Texture("assets/title.png")})) // 1.8 is the Aspect Ratio of the screen
+                globalMaterials.textured.override({color: hex_color("#000000"), ambient: 1.0, texture: new Texture("assets/title.png")})) // 1.8 is the Aspect Ratio of the screen
             },
             {
                 "name": "Play Option",
@@ -494,6 +494,7 @@ export class GUIController {
         let counter = this.createTextObj(this.createTransformFunc([-.55, 0, -3.99], [.2, .2, 1]), "  " + seconds);
 
         let parent = this.parent;
+        let me = this;
 
         let counterListener = setInterval((evt) => {
             // EDGE CASE: We have found that the reliance on setinterval allows the user to cheat the starting counter in some cases, thus we always disable the kart here.
