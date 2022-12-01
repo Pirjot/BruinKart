@@ -12,6 +12,16 @@ import {Body, Simulation} from './physics.js';
 const {vec, vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_color} = tiny;
 const {Cube, Textured_Phong} = defs
 
+let globalVals = {
+    ground: new Cube(),
+    multEW32: new Cube(),
+    multNS32: new Cube(),
+    multWE32: new Cube(),
+    multSN32: new Cube(),
+    solidEW6: new Cube(),
+    solidNS6: new Cube()
+};
+
 /**
  * A Helper class to abstractify the operation of setting up certain
  * scenes in a given world.
@@ -37,14 +47,28 @@ export class World {
         this.activeBodies = {};
         this.lightsAdded = false;
         
-        // Note, keep this array such when name == "classic", set it as needed when name == "default"
-        this.lights = [
-            {
+        /**
+         * The lights array keeps track of all the initial parameters for the lights.
+         * 
+         * An example: {
+                "name": "Default_Light",
                 "pos": [0, 20, -50, 1], 
                 "size": 10000, 
                 "col": [1, 1, 1, 1]
             }
-        ];
+         */
+        this.lights = [];
+
+        /**
+         * The dynamic light functions are passed the light instance at the same index as
+         * the function itself.
+         * 
+         * NOTE: Although we don't ensure it, we assume this.dynamicLightingFuncs.length ==
+         * program_state.lights. Simply fill an empty function that returns the parameter
+         * passed into it if you do not use the light.
+         */
+        this.dynamicLightingFuncs = [];
+
 
         this.numWalls = 0;
         this.colors = {
@@ -53,47 +77,30 @@ export class World {
             blue: hex_color("#0000FF"),
             yellow: hex_color("#FFFF00")
         }
+
+        let start = globalMaterials.textured.override({
+            color: hex_color("#000000"), ambient: .6, diffusivity: 1, smoothness: .3
+        }); 
+
+        function matHelper(fileName) {
+            return start.override({texture: new Texture(fileName)})
+        }
+
         this.materials = {
-            ground: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/ground.png")}),
-            mult32x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/mult32x2.png")}),
-            red2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/red2x2.png")}),
-            yellow2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/yellow2x2.png")}),
-            green2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/green2x2.png")}),
-            blue2x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/blue2x2.png")}),
-            red4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/red4x2.png")}),
-            yellow4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/yellow4x2.png")}),
-            green4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/green4x2.png")}),
-            blue4x2: new Material(new defs.Textured_Phong(1), {
-                color: hex_color("#000000"), ambient: 1.0,
-                texture: new Texture("assets/blue4x2.png")}),  
+            ground: matHelper("assets/ground.png"),
+            mult32x2: matHelper("assets/mult32x2.png"),
+            red2x2: matHelper("assets/red2x2.png"), 
+            yellow2x2: matHelper("assets/yellow2x2.png"),
+            green2x2: matHelper("assets/green2x2.png"),
+            blue2x2: matHelper("assets/blue2x2.png"),
+            red4x2: matHelper("assets/red4x2.png"), 
+            yellow4x2: matHelper("assets/yellow4x2.png"),
+            green4x2: matHelper("assets/green4x2.png"),
+            blue4x2: matHelper("assets/blue4x2.png"),
+            sun: globalMaterials.default.override({
+                color: hex_color("#FFAE42"), ambient: 1.0}),
         }
-        this.shapes = {
-            ground: new Cube(),
-            multEW32: new Cube(),
-            multNS32: new Cube(),
-            multWE32: new Cube(),
-            multSN32: new Cube(),
-            solidEW6: new Cube(),
-            solidNS6: new Cube()
-        }
+        this.shapes = globalVals;
         this.shapes.ground.arrays.texture_coord = [
             vec(0, 0), vec(1, 0), vec(0, 1), vec(1, 1),       // Bottom face
             vec(0, 0), vec(-1, 0), vec(0, 1), vec(-1, 1),     // Top face
@@ -351,7 +358,8 @@ export class World {
                 this.activeShapes["ground"] = {
                     "shape": globalShapes.cube,
                     "material": globalMaterials.default.override({
-                        "color": hex_color("#666666")
+                        "color": hex_color("#666666"),
+                        smoothness: .6
                     }),
                     "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(100, .5, 100))
                 }
@@ -503,6 +511,8 @@ export class World {
         this.createObstacles("DEFAULT");
 
         this.initDefaultCheckpoints();
+
+        this.initDefaultLights();
     }
 
     /**
@@ -515,6 +525,8 @@ export class World {
         this.createObstacles("RETRO");
 
         this.initClassicCheckpoints();
+
+        this.initClassicLights();
     }
 
     /**
@@ -558,6 +570,46 @@ export class World {
         this.addCheckpoint([-40, 1, 4], [20, 100, 1], [15, 50, 5]);
     }
 
+    /**
+     * Add the initial lights and their dynamic funcs.
+     */
+    initDefaultLights() {
+        this.lights = [{
+            "name": "Sun",
+            "pos": [64, 10, 128, 1], 
+            "size": 5000, 
+            "col": [1, .69, .26, 1]
+        }];
+
+        this.dynamicLightingFuncs = [(light, program_state) => {
+            const t = program_state.animation_time / 1000;
+            const r = 100;
+            const zStretch = 1.5;
+            const speed = 5;
+            const y = r * Math.cos(t / speed);
+            const z = (zStretch * r * Math.sin(t / speed) + 128);
+    
+            // Change light position to follow sun
+            light.position = vec4(64, y, z, 1);
+            
+            this.activeShapes["sun"] = {
+                "shape": globalShapes.sphere,
+                "material": this.materials.sun,
+                "transform": Mat4.translation(64, y, z, 1).times(Mat4.scale(10, 10, 10))
+            }
+            return light;
+        }];
+            
+    }
+
+    initClassicLights() {
+        this.lights = [{
+            "name": "Default_Light",
+            "pos": [0, 20, -50, 1], 
+            "size": 1000, 
+            "col": [1, 1, 1, 1]
+        }];
+    }
 
     /**
      * Append all the static bodies to the given bodies array.
@@ -606,12 +658,20 @@ export class World {
         if (this.lightsAdded) {
             return;
         }
+        program_state.lights = [];
 
         for (let light of this.lights) {
             this.addLight(program_state, light["pos"], light["col"], light["size"])
         }
 
         this.lightsAdded = true;
+    }
+
+    dynamicLighting(program_state) {
+        for (let i = 0; i < this.dynamicLightingFuncs.length; i++) {
+            let func = this.dynamicLightingFuncs[i];
+            func(program_state.lights[i], program_state);
+        }
     }
 
     /**
@@ -622,6 +682,9 @@ export class World {
     drawWorld(context, program_state) {
         // Add the Default Light (ported from the original world)
         this.addAllLights(program_state);
+
+        // Provide dynamic lighting support
+        this.dynamicLighting(program_state);
 
         let shapes = Object.values(this.activeShapes);
 

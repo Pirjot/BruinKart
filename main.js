@@ -24,11 +24,13 @@ globalThis.globalShapes = {
     kart3: new Kart3(),
     stadium_light: new StadiumLight(),
     text: new Text_Line(40),
+    sphere: new defs.Subdivision_Sphere(4)
 }
 
 // Load all needed materials
 globalThis.globalMaterials = {
     default: new Material(new defs.Phong_Shader()),
+    textured: new Material(new defs.Textured_Phong(1)),
     kart1_texture: new Material(new defs.Textured_Phong(1), {
         color: color(0,0,0, 1),
         ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart1.png")
@@ -76,9 +78,8 @@ export class BruinKart extends Simulation {
         // The Matrix used to transform the camera
         this.currCamMatrix = null;
 
-        // Load the Kart and the world in default positions (the GUIController is enabled last to hijack these values)
+        // Load the Kart, we load the world later
         this.kart = new Kart(this);
-        this.world = new World("default");
 
         // this.bodies allocated as empty array to hold all needed bodies
 
@@ -94,9 +95,10 @@ export class BruinKart extends Simulation {
          * 
          * The second type is (this.bodies[1:]) is the bodies of the World that are collidable.
          * The World needs to only be passed its bodies array at the time of initialization.
+         * 
+         * The world now loads later
          */
         this.kart.initializeBody(this.bodies);
-        this.world.initializeBodies(this.bodies);
 
         /**
          * Checkpoint Logic
@@ -119,8 +121,9 @@ export class BruinKart extends Simulation {
             this.checkpointIndex = 0;
             this.laps = 0;
         };
-        this.setupCheckpoints();
-
+    
+        // Now load the world, in this way we can initialize the skybox correctly
+        this.loadWorld("default");
 
         // We also have access to simulation time variables (check default Simulation Class)
 
@@ -175,6 +178,20 @@ export class BruinKart extends Simulation {
         this.world.initializeBodies(this.bodies);
         this.setupCheckpoints();
 
+        // Perform Skybox logic
+
+        this.skybox = {
+            shape: globalShapes.cube,
+            material: globalMaterials.textured.override({
+                color: hex_color("#000000"),
+                texture: new Texture("assets/skybox.png"),
+                ambient: 1.0
+            }),
+            center: [62, 1, 125],
+            scale: [500, 100, 500]
+        }
+
+
         const delay = (ms = 500) => new Promise(callMeToResolve => setTimeout(callMeToResolve, ms));
 
         // We don't have a way to actually measure how long it takes it to load the textures so we just guess it take 1/10 second atmost
@@ -186,8 +203,28 @@ export class BruinKart extends Simulation {
      * read from the keyboard manually using JS)
      */
     make_control_panel() {
-        this.key_triggered_button("Clear Memory (PERMANENT!)", ["r"], () => confirm("Are you sure you would like to clear all your past best times?") ? localStorage.clear() : null);
+        this.key_triggered_button("Clear Memory (PERMANENT!)", ["r"], () => confirm("Are you sure you would like to clear all your past best times? (this will refresh the page)") ? localStorage.clear() || window.location.reload() : null);
+        
         // super.make_control_panel();
+
+        this.control_panel.style["overflow-y"] = "auto";
+        let html = `<div>
+                        <h1 style="text-align:center; text-decoration: underline">Welcome to BruinKart!</h1>
+                        <h2 style="text-align:center">Built by Zane Witter, Jonathan Woo, and Pirjot Atwal.</h2>
+                        <h2>Main Controls:</h2>
+                        <p>To play, use the keys "I", "J", "K", and "L" for 
+                           Forward, Left, Right, and Backward respectively.
+                        </p>
+                        <h2>Other Controls:</h2>
+                        <p>You can pause the game with "Esc", and change the camera
+                        while in game with "C". All other controls are provided onscreen. The third camera
+                        is a free camera, which can be navigated using the camera controls displayed to the
+                        left. Press R at anytime if you would like to restart the memory of the game.
+                        </p>
+                        
+                    </div>`;
+        this.control_panel.innerHTML += html;
+
     }
 
     /**
@@ -330,6 +367,8 @@ export class BruinKart extends Simulation {
          */
         this.controller.handle(context, program_state, this.currCamMatrix);
 
+        this.drawSkybox(context, program_state);
+
         /**
          * Ghost mode, simply draw a noncollidable shape at the position if
          * it exists.
@@ -344,7 +383,6 @@ export class BruinKart extends Simulation {
             // We grab the model to display directly from the current kart's body
             this.kart.body.shape.draw(context, program_state, model_transform, this.kart.body.material);
         }
-
     }
 
     /**
@@ -353,6 +391,11 @@ export class BruinKart extends Simulation {
      * @param {*} program_state 
      */
     attachCamera(context, program_state) {
+        // Special Case: The user has disabled the kart, change the camera to kartBack always
+        if (!this.kartEnabled) {
+            this.attachedCamera = "kartBack";
+        }
+
         switch (this.attachedCamera) {
             case "kartBack":
                 this.currCamMatrix = this.kart.getBackCam();
@@ -376,5 +419,33 @@ export class BruinKart extends Simulation {
      */
     displayGhostAt(coords) {
         this.ghostPos = coords;
+    }
+
+    /**
+     * Draw a very janky skybox.
+     */
+    drawSkybox(context, program_state) {
+        let centerMat = Mat4.identity().times(Mat4.translation(...this.skybox.center));
+        let skyboxTransform = centerMat.times(Mat4.scale(...this.skybox.scale));
+        this.skybox.shape.draw(context, program_state, skyboxTransform, this.skybox.material);
+
+        // Draw a bottom and top floor
+        let height = this.skybox.scale[1] - 10;
+        let size = [this.skybox.scale[0], this.skybox.scale[2]];
+
+        let model_top = centerMat.times(Mat4.translation(0, height, 0)).times(Mat4.scale(size[0], 1, size[1]));
+        let model_bot = centerMat.times(Mat4.translation(0, -height, 0)).times(Mat4.scale(size[0], 1, size[1]));
+
+        let top_mat = globalMaterials.default.override({
+            color: hex_color("#87CEEB"),
+            ambient: 1
+        });
+        let bot_mat = globalMaterials.default.override({
+            color: hex_color("#FFE5B4"),
+            ambient: 1
+        });
+
+        globalShapes.cube.draw(context, program_state, model_top, top_mat);
+        globalShapes.cube.draw(context, program_state, model_bot, bot_mat);
     }
 }
