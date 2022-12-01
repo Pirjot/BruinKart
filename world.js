@@ -20,7 +20,7 @@ const {Cube, Textured_Phong} = defs
 export class World {
     /**
      * Initialize and prepare the given world.
-     * @param {*} name 
+     * @param {*} name default / classic
      */
     constructor(name) {
         /**
@@ -37,6 +37,7 @@ export class World {
         this.activeBodies = {};
         this.lightsAdded = false;
         
+        // Note, keep this array such when name == "classic", set it as needed when name == "default"
         this.lights = [
             {
                 "pos": [0, 20, -50, 1], 
@@ -164,8 +165,11 @@ export class World {
          */ 
         this.checkpoints = [];
 
-        // Multiple Map Support (if we get to making multiple maps)
+        // Multiple Map Support
         switch (name) {
+            case "classic":
+                this.initClassic();
+                return;
             default:
                 this.initDefault();
         }
@@ -201,6 +205,31 @@ export class World {
         body.emplace(params.location, params.velocity, params.angular, params.spin_axis);
 
         this.activeBodies[params.name] = body;
+    }
+
+    /**
+      * A wrapper function for addBody which can place scaled cubes ("walls") at a given location.
+      * The corresponding wall will be named "Wall-i", where i is the number of walls that have
+      * been placed.
+      * @param {vec3} dims The x,y,z dimensions of the wall 
+      * @param {vec3} location The x,y,z coordinates where the top left (least x, least z)
+      *                        of the wall should be placed
+      * @param {vec3} color (default is red)
+      */
+     addWallByDimensionAndColor(dims, location, color = hex_color("#cf2d21")) {
+        this.addBody({
+            name: `Wall-${this.numWalls}`,
+            shape: globalShapes.cube,
+            material: globalMaterials.default.override({
+                color: color,
+                ambient: 1
+            }),
+            scale: vec3(dims[0] / 2, dims[1] / 2, dims[2] / 2),
+            location: Mat4.translation(location[0], location[1], location[2]).times(
+                Mat4.translation(dims[0] / 2, dims[1] / 2, dims[2] / 2)
+            )
+        });
+        this.numWalls++;
     }
 
     /**
@@ -303,67 +332,160 @@ export class World {
         this.numWalls++;
     }
 
-    // Emplace the outer edges of the racetrack
-    createOuterBoundary() {
-        for (let x = 0; x < 128; x += 32) {
-            this.addWall("multEW32", vec3(x, 0, 0));
+    /** Place the ground as an active shape
+      * 
+      * @param {string} map Specify what map to create for:
+      *                     Options are DEFAULT and RETRO
+      */
+     createGround(map = "DEFAULT") {
+        switch(map) {
+            default:
+            case "DEFAULT":
+                this.activeShapes["ground"] = {
+                "shape": this.shapes.ground,
+                "material": this.materials.ground,
+                "transform": Mat4.translation(64, -.5, 128).times(Mat4.scale(64, .5, 128))
+                }
+            break;
+            case "RETRO":
+                this.activeShapes["ground"] = {
+                    "shape": globalShapes.cube,
+                    "material": globalMaterials.default.override({
+                        "color": hex_color("#666666")
+                    }),
+                    "transform": Mat4.identity().times(Mat4.translation(0, -.5, 0)).times(Mat4.scale(100, .5, 100))
+                }
+            break;
         }
-        for (let z = 0; z < 256; z += 32) {
-            this.addWall("multSN32", vec3(126, 0, z));
-        }
-        for (let z = 0; z < 256; z += 32) {
-            this.addWall("multNS32", vec3(0, 0, z));
-        }
-        for (let x = 0; x < 128; x += 32 ) {
-            this.addWall("multWE32", vec3(x, 0, 254));
-        } 
-        this.addWall("multEW32", vec3(0, 0, 96));
-        this.addWall("multSN32", vec3(30, 0, 96));
-        this.addWall("multSN32", vec3(30, 0, 128));
-        this.addWall("multWE32", vec3(0, 0, 158));
     }
 
-    // Emplace the inner edges of the racetrack
-    createInnerBoundary() {
-        for (let x = 32; x < 96; x += 32) {
-            this.addWall("multEW32", vec3(x, 0, 32));
+    /** Emplace the outer edges of the racetrack
+     * 
+     * @param {string} map Specify what map to create for:
+     *                     Options are DEFAULT and RETRO
+     */
+    createOuterBoundary(map = "DEFAULT") {
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
+        switch (map) {
+            case "RETRO":
+                this.addWallByDimensionAndColor(vec3(44, 2, 2), vec3(-50, 0, 48), blue);
+                this.addWallByDimensionAndColor(vec3(2, 2, 96), vec3(-50, 0, -48), red);
+                this.addWallByDimensionAndColor(vec3(64, 2, 2), vec3(-50, 0, -50), blue);
+                this.addWallByDimensionAndColor(vec3(2, 2, 18), vec3(12, 0, -48), green);
+                this.addWallByDimensionAndColor(vec3(38, 2, 2), vec3(12, 0, -30), blue);
+                this.addWallByDimensionAndColor(vec3(2, 2, 76), vec3(48, 0, -28), green);
+                this.addWallByDimensionAndColor(vec3(48, 2, 2), vec3(2, 0, 48), blue);
+                this.addWallByDimensionAndColor(vec3(2, 2, 18), vec3(2, 0, 30), green);
+                this.addWallByDimensionAndColor(vec3(12, 2, 2), vec3(-8, 0, 28), blue);
+                this.addWallByDimensionAndColor(vec3(2, 2, 18), vec3(-8, 0, 30), green);
+            break;
+            default:
+            case "DEFAULT":
+                for (let x = 0; x < 128; x += 32) {
+                    this.addWall("multEW32", vec3(x, 0, 0));
+                }
+                for (let z = 0; z < 256; z += 32) {
+                    this.addWall("multSN32", vec3(126, 0, z));
+                }
+                for (let z = 0; z < 256; z += 32) {
+                    this.addWall("multNS32", vec3(0, 0, z));
+                }
+                for (let x = 0; x < 128; x += 32 ) {
+                    this.addWall("multWE32", vec3(x, 0, 254));
+                } 
+                this.addWall("multEW32", vec3(0, 0, 96));
+                this.addWall("multSN32", vec3(30, 0, 96));
+                this.addWall("multSN32", vec3(30, 0, 128));
+                this.addWall("multWE32", vec3(0, 0, 158));
+            break;
         }
-        for (let z = 32; z < 224; z += 32) {
-            this.addWall("multSN32", vec3(94, 0, z));
-        }
-        for (let x = 32; x < 96; x += 32) {
-            this.addWall("multWE32", vec3(x, 0, 222));
-        }
-        this.addWall("multNS32", vec3(32, 0, 192));
-        this.addWall("multEW32", vec3(32, 0, 192));
-        for (let z = 64; z < 192; z += 32) {
-            this.addWall("multNS32", vec3(64, 0, z));
-        }
-        this.addWall("multWE32", vec3(32, 0, 62));
-        this.addWall("multNS32", vec3(32, 0, 32));
     }
 
-    // Emplace miscellaneous obstacles
-    createObstacles() {
-        this.addWall("blueNS4", vec3(64, 0, 224));
-        this.addWall("blueNS4", vec3(64, 0, 250));
-        this.addWall("blueNS4", vec3(64, 0, 246));
-        this.addWall("blueNS4", vec3(64, 0, 242));
+    /** Emplace the inner edges of the racetrack
+      * 
+     * @param {string} map Specify what map to create for:
+     *                     Options are DEFAULT and RETRO
+     */
+    createInnerBoundary(map = "DEFAULT") {
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
 
-        this.addWall("redEW4", vec3(24, 0, 228));
-        this.addWall("redEW4", vec3(24, 0, 230));
+        switch (map) {
+            case "RETRO":
+                this.addWallByDimensionAndColor(vec3(2, 2, 60), vec3(-28, 0, -32), red);
+                this.addWallByDimensionAndColor(vec3(16, 2, 2), vec3(-26, 0, -32), green);
+                this.addWallByDimensionAndColor(vec3(2, 2, 22), vec3(-10, 0, -32), red);
+                this.addWallByDimensionAndColor(vec3(28, 2, 2), vec3(-8, 0, -12), yellow);
+                this.addWallByDimensionAndColor(vec3(2, 2, 38), vec3(18, 0, -10), green);
+                this.addWallByDimensionAndColor(vec3(44, 2, 2), vec3(-26, 0, 14), blue);
+            break;
+            default:
+            case "DEFAULT":
+                for (let x = 32; x < 96; x += 32) {
+                    this.addWall("multEW32", vec3(x, 0, 32));
+                }
+                for (let z = 32; z < 224; z += 32) {
+                    this.addWall("multSN32", vec3(94, 0, z));
+                }
+                for (let x = 32; x < 96; x += 32) {
+                    this.addWall("multWE32", vec3(x, 0, 222));
+                }
+                this.addWall("multNS32", vec3(32, 0, 192));
+                this.addWall("multEW32", vec3(32, 0, 192));
+                for (let z = 64; z < 192; z += 32) {
+                    this.addWall("multNS32", vec3(64, 0, z));
+                }
+                this.addWall("multWE32", vec3(32, 0, 62));
+                this.addWall("multNS32", vec3(32, 0, 32));
+            break;
+        }
+    }
 
-        this.addWall("greenEW4", vec3(48, 0, 128));
-        this.addWall("greenEW4", vec3(48, 0, 126));
+    /** Emplace miscellaneous obstacles
+      * 
+     * @param {string} map Specify what map to create for:
+     *                     Options are DEFAULT and RETRO
+     */
+    createObstacles(map = "DEFAULT") {
+        const red = this.colors.red;
+        const green = this.colors.green;
+        const blue = this.colors.blue;
+        const yellow = this.colors.yellow;
 
-        this.addWall("yellowEW4", vec3(36, 0, 86));
-        this.addWall("yellowEW4", vec3(36, 0, 88));
+        switch (map) {
+            case "RETRO":
+                this.addWallByDimensionAndColor(vec3(4, 2, 2), vec3(24, 0, 4), blue);
+                this.addWallByDimensionAndColor(vec3(4, 2, 2), vec3(40, 0, 4), red);
+                this.addWallByDimensionAndColor(vec3(12, 2, 2), vec3(28, 0, 20), yellow);
+            break;
+            default:
+            case "DEFAULT":
+                this.addWall("blueNS4", vec3(64, 0, 224));
+                this.addWall("blueNS4", vec3(64, 0, 250));
+                this.addWall("blueNS4", vec3(64, 0, 246));
+                this.addWall("blueNS4", vec3(64, 0, 242));
 
-        this.addWall("yellowNS4", vec3(40, 0, 10));
-        this.addWall("yellowNS4", vec3(40, 0, 22));
+                this.addWall("redEW4", vec3(24, 0, 228));
+                this.addWall("redEW4", vec3(24, 0, 230));
 
-        this.addWall("blueNS4", vec3(60, 0, 14));
-        this.addWall("blueNS4", vec3(60, 0, 18));
+                this.addWall("greenEW4", vec3(48, 0, 128));
+                this.addWall("greenEW4", vec3(48, 0, 126));
+
+                this.addWall("yellowEW4", vec3(36, 0, 86));
+                this.addWall("yellowEW4", vec3(36, 0, 88));
+
+                this.addWall("yellowNS4", vec3(40, 0, 10));
+                this.addWall("yellowNS4", vec3(40, 0, 22));
+
+                this.addWall("blueNS4", vec3(60, 0, 14));
+                this.addWall("blueNS4", vec3(60, 0, 18));
+            break;
+        }
     }
 
     /**
@@ -375,18 +497,24 @@ export class World {
      * and the top of the ground will be at y = 0. 
      */
     initDefault() {
-        // Add the ground
-        this.activeShapes["ground"] = {
-            "shape": this.shapes.ground,
-            "material": this.materials.ground,
-            "transform": Mat4.translation(64, -.5, 128).times(Mat4.scale(64, .5, 128))
-        }
-
-        this.createOuterBoundary();
-        this.createInnerBoundary();
-        this.createObstacles();
+        this.createGround("DEFAULT");
+        this.createOuterBoundary("DEFAULT");
+        this.createInnerBoundary("DEFAULT");
+        this.createObstacles("DEFAULT");
 
         this.initDefaultCheckpoints();
+    }
+
+    /**
+     * Initialize the Classic / Default World and its checkpoints
+     */
+    initClassic() {
+        this.createGround("RETRO");
+        this.createOuterBoundary("RETRO");
+        this.createInnerBoundary("RETRO");
+        this.createObstacles("RETRO");
+
+        this.initClassicCheckpoints();
     }
 
     /**
@@ -421,6 +549,17 @@ export class World {
     }
 
     /**
+     * Add the classic checkpoints (again, only 4)
+     */
+    initClassicCheckpoints() {
+        this.addCheckpoint([9, 1, 30], [1, 100, 35], [5, 50, 15]);
+        this.addCheckpoint([35, 1, -5], [33, 100, 1], [15, 50, 5]);
+        this.addCheckpoint([-20, 1, -40], [1, 100, 15], [5, 50, 15]);
+        this.addCheckpoint([-40, 1, 4], [20, 100, 1], [15, 50, 5]);
+    }
+
+
+    /**
      * Append all the static bodies to the given bodies array.
      * 
      * Assume that the first element is to be ignored, as it represents the kart's body
@@ -451,7 +590,6 @@ export class World {
             checkpoints.push(this.checkpoints[i]);
         }
     }
-
 
     /**
      * Add a light to the world with the given params

@@ -7,10 +7,10 @@
  * @author Pirjot Atwal
  */
 
-import { tiny } from "./examples/common.js";
+import { tiny, defs } from "./examples/common.js";
 import { Kart } from "./kart.js";
 
-const { vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color } = tiny;
+const { vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_color } = tiny;
 
 /**
  * A timer object that supports pause functionality.
@@ -18,15 +18,11 @@ const { vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color } = 
  */
 class Timer {
     constructor() {
-        this.state = "play";
-        this.totalPausedMilliseconds = 0;
-        this.pauseStart = null;
         this.resetTime();
     }
 
     resetTime() {
         this.startTime = Date.now();
-
         this.totalPausedMilliseconds = 0;
         this.pauseStart = null;
         this.state = "play";
@@ -91,13 +87,49 @@ export class GUIController {
         this.shapes = [];
         this.listeners = [];
 
+        // Keep track of the Kart Options, when the user starts the game, we load the kart using them
+        this.selectedKart = "BruinKart";
+        this.selectedMap = "default";
 
         // Keep track of all state specific variables
+
         // Variables for playing the game
         this.timer = new Timer();
         this.laps = 0;
         this.bestTime = Infinity;
         this.checks = 0;
+
+        // By default, the world is "loaded" so we can actually start the GUI
+        this.worldReady = true;
+
+
+        /**
+         * NEW FEATURE! Ghost Mode.
+         * 
+         * We keep track of a currentGhost (keeping track of the user's progress)
+         * and a pastGhost with coordinates that we pass to the parent to display in
+         * the world.
+         * 
+         * Ghost objects look like this: {
+         *      time: [x, y, z] // The position
+         * }
+         * 
+         * Thats all! If we need to update past ghost we'll know simply by checking
+         * if the last time in the past ghost is > then the last time in current ghost when
+         * we finish a lap.
+         */
+        // We keep track of the last time we displayed the ghost.
+        this.lastGhostTime = -1;
+        this.currentGhost = {};
+        this.pastGhost = {};
+
+        // Save the options chosen by the user solely for saving to cache
+        this.options = {
+            world: "default",
+            kart: "BruinKart"
+        }
+
+        this.memory = {};
 
         // When we start, we draw the default layout of the initial menu, program will move through its other states automatically
         this.initMenu();
@@ -211,6 +243,8 @@ export class GUIController {
 
     /**
      * Reset the shapes and listeners and add the default listeners in if needed.
+     * 
+     * (i.e. Reset the GUI)
      */
     reset() {
         this.deactivateListeners();
@@ -226,6 +260,35 @@ export class GUIController {
                 }
             }
         });
+
+        // Reset the timer
+        this.timer.resetTime();
+
+        // Reset relevant variables
+        this.loadTimes();
+    }
+
+    /**
+     * Load our best time and ghost from memory.
+     */
+    loadTimes() {
+        this.bestTime = Infinity;
+        this.pastGhost = {};
+        this.lastGhostTime = -1;
+        
+    }
+
+    /**
+     * Reset the Kart in the parent (to put it in the right position and reload the model/texture)
+     * 
+     * @param {String} worldType default / classic
+     */
+    resetKart(worldType) {
+        // Reset the Kart, (we can reset the entire world here if based on user parameters)
+        this.parent.kart = new Kart(this.parent, this.selectedKart, worldType);
+        let tempBodies = [];
+        this.parent.kart.initializeBody(tempBodies);
+        this.parent.bodies[0] = tempBodies[0];
     }
 
     /**
@@ -241,14 +304,12 @@ export class GUIController {
      */
     initMenu() {
         this.state = "initial";
-        
-        // Reset the Kart, (we can reset the entire world here if based on user parameters)
-        this.parent.kart = new Kart(this.parent);
-        let tempBodies = [];
-        this.parent.kart.initializeBody(tempBodies);
-        this.parent.bodies[0] = tempBodies[0];
 
+        // Reset the GUI
         this.reset();
+
+        // Pause the timer for now, the countdown will reset it
+        this.timer.pause();
 
         // Disable the game, Enable it when the user chooses an option to start the game
         this.parent.disableKart();
@@ -258,21 +319,40 @@ export class GUIController {
         /**
          * P: Play the game
          */
-        this.buildShapes([
+        let shapes = [
             {
                 "name": "Background Cube",
-                "obj": this.createShapeObj(this.createTransformFunc([0, 0, -5], [1.8 * 2, 2, 1])) // 1.8 is the Aspect Ratio of the screen
-            },
-            {
-                "name": "Welcome Title",
-                "obj": this.createTextObj(this.createTransformFunc([-2, 1, -3.99], [.15, .15, 1]), "Welcome to BruinKart!")
+                "obj": this.createShapeObj(this.createTransformFunc([0, 0, -5], [1.8 * 2, 2, 1]), 
+                new Material(new defs.Textured_Phong(1), {color: hex_color("#000000"), ambient: 1.0, texture: new Texture("assets/title.png")})) // 1.8 is the Aspect Ratio of the screen
             },
             {
                 "name": "Play Option",
-                "obj": this.createTextObj(this.createTransformFunc([-2, .5, -3.99], [.1, .1, 1]), "Press P to Play")
-            } 
-            // Possible parameter change for the Kart Model / Map HERE TODO
-        ]);
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .6, -3.99], [.1, .1, 1]), "Press P to Play")
+            },
+            {
+                "name": "Kart Option",
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .35, -3.99], [.1, .1, 1]), "Press K to Switch Your Kart")
+            },
+            { // Index 3
+                "name": "Kart String",
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .15, -3.99], [.1, .1, 1]), "CURRENTKART")
+            },
+            {
+                "name": "Map Option",
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, -.1, -3.99], [.1, .1, 1]), "Press M to Switch Your Map")
+            },
+            { // Index 5
+                "name": "Map String",
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, -.3, -3.99], [.1, .1, 1]), "CURRENTMAP")
+            },
+        ];
+        this.buildShapes(shapes);
+
+
+        // Select all labels that need to be updated by user choice (need to be set to the corresponding string)
+        this.currentKartString = shapes[3]["obj"];
+        this.currentMapString = shapes[5]["obj"];        
+
 
         // Build all listeners for the Menu
         /**
@@ -283,17 +363,57 @@ export class GUIController {
             return char.charCodeAt(0);
         }
 
-        // Play Listener
-        this.listeners.push({
-            "type": "keydown",
-            "listener": (evt) => {
-                if (evt.keyCode == getASCII("P")) {
-                    this.initGame();
+        // Push all listeners
+        this.listeners.push(
+            { // Play Listener
+                "type": "keydown",
+                "listener": (evt) => {
+                    if (evt.keyCode == getASCII("P")) {
+                        this.initGame();
+                    }
                 }
-            }
-        });
+            },
+            { // Kart Listener
+                "type": "keydown",
+                "listener": (evt) => {
+                    if (evt.keyCode == getASCII("K")) {
+                        this.nextKart();
+                    }
+                }
+            },
+            { // Map Listener
+                "type": "keydown",
+                "listener": (evt) => {
+                    if (evt.keyCode == getASCII("M")) {
+                        this.nextMap();
+                    }
+                }
+            },
+        );
 
         this.activateListeners();
+    }
+
+    /**
+     * Increment the current selected kart to the next kart.
+     */
+    nextKart() {
+        let curr = this.selectedKart;
+        this.selectedKart = curr == "BruinKart" ? "Clown" :
+                            curr == "Clown" ? "Toad" :
+                                    "BruinKart";
+        
+        this.options.kart = this.selectedKart;
+    }
+
+    /**
+     * Increment the current selected map to the next map.
+     */
+    nextMap() {
+        this.selectedMap = this.selectedMap == "default" ? "classic" :
+                                               "default";
+        
+        this.options.world = this.selectedMap;
     }
 
     /**
@@ -302,11 +422,38 @@ export class GUIController {
      * 
      * Make sure to display the game GUI for time and laps.
      */
-    initGame() {
+    async initGame() {
         this.state = "playing";
 
         // Reset the state of the controller
         this.reset();
+        this.timer.pause();
+
+        // Set the Kart accordingly (based on user option)
+        this.resetKart(this.selectedMap);
+
+        // Set the world to not ready so no GUI updates happen
+        this.worldReady = false;
+
+        // Enable the kart for a bit, then disable it after the world is done loading
+        this.parent.enableKart();
+
+        // Asyncronously load the world (we assume the asynchronous part is handled on part of the world)
+        await this.parent.loadWorld(this.selectedMap);
+        this.worldReady = true;
+
+        this.parent.disableKart();
+
+        // Load the ghost memory
+        this.loadMemory();
+
+        // Set the parameters accordingly
+        if (Object.keys(this.memory).includes(this.selectedKart) && Object.keys(this.memory[this.selectedKart]).includes(this.selectedMap)) {
+            let ghostVals = this.memory[this.selectedKart][this.selectedMap];
+            this.bestTime = ghostVals.bestTime;
+            this.pastGhost = ghostVals.ghost;
+        }
+
 
         // Build the GUI for the user playing the game
 
@@ -322,16 +469,53 @@ export class GUIController {
         // Build the Checks string in the same fashion
         this.checkString = this.createTextObj(this.createTransformFunc([1.9, 1.3, -3.99], [.08, .08, 1]), "CHECKS")
         
-        this.shapes.push(this.timeString, this.bestTimeString, this.lapsString, this.checkString);
+        // Build a special counter string that has its own timer, the function will call the callback to start the game
+        this.counterString = this.createCounter(3, () => {
+            // Allow the user to start after the countdown if finished
+            this.parent.enableKart();
 
-        // Allow the user to start (after the countdown??)
-        this.parent.enableKart();
+            // Start our internal timer at the start of the race
+            this.timer.resetTime();
+        });
 
-        // Start our internal timer at the start of the race
-        this.timer.resetTime();
+        this.shapes.push(this.timeString, this.bestTimeString, this.lapsString, this.checkString, this.counterString);
 
-        // Activate all listeners
+        // Activate all listeners (in this case this just activates the pause menu)
         this.activateListeners();
+    }
+
+    /**
+     * Create a special string that counts down for the user to start the race.
+     * 
+     * @param {Number} seconds The time the counter should count down for
+     * @param {Function} callback 
+     */
+    createCounter(seconds, callback) {
+        let counter = this.createTextObj(this.createTransformFunc([-.55, 0, -3.99], [.2, .2, 1]), "  " + seconds);
+
+        let parent = this.parent;
+
+        let counterListener = setInterval((evt) => {
+            // EDGE CASE: We have found that the reliance on setinterval allows the user to cheat the starting counter in some cases, thus we always disable the kart here.
+            parent.disableKart();
+            
+            seconds -= 1;
+
+            counter["text"] = "  " + seconds;
+
+            if (seconds <= 0) {
+                counter["text"] = "  GO";
+
+                // Clear the counter after a second
+                setTimeout(() => counter["text"] = "", 1000);
+
+                clearInterval(counterListener);
+
+                callback();
+            }
+        }, 1000);
+
+        return counter;
     }
 
     pauseGame() {
@@ -410,7 +594,14 @@ export class GUIController {
      * @param {Mat4} cam_matrix
      */
     handle(context, program_state, cam_matrix) {
-        this.handlePlayState(context, program_state);
+        // Make sure the world is loaded before doing any onscreen GUI stuff
+        if (!this.worldReady) {
+            return;
+        }
+
+        // Handle the values of each state accordingly
+        this.handleMenuState();
+        this.handlePlayState();
         
         /**
          * "Handling" the GUI consists of drawing all the current items and listening
@@ -426,24 +617,49 @@ export class GUIController {
             if (shape.text != undefined) {
                 shape["shape"].set_string(shape.text, context.context);
             }
-
             shape["shape"].draw(context, program_state, shape["transform"](cam_matrix), shape["material"]);
         }
     }
 
     /**
-     * Activately handle the play state on every handle call IF we are in the play state.
+     * Handle the Menu state's current parameters by updating them.
      */
-    handlePlayState(context, program_state) {
+    handleMenuState() {
+        if (this.state != "initial") {
+            return;
+        }
+
+        this.currentKartString["text"] = "Current Kart: " + this.selectedKart;
+        this.currentMapString["text"] = "Current Map: " + this.selectedMap;
+    }
+
+    /**
+     * Handle the play state on every handle call IF we are in the play state.
+     */
+    handlePlayState() {
         if (this.state != "playing") {
             return;
         }
 
         // Update all of our parameters on the GUI accordingly
-        this.timeString["text"] = "Time: " + this.timer.getTime().toFixed(1);
+        let time = this.timer.getTime().toFixed(1);
+        this.timeString["text"] = "Time: " + time;
         this.bestTimeString["text"] = "Best Time: " + (this.bestTime == Infinity ? "N/A" : this.bestTime.toFixed(1));
         this.lapsString["text"] = "Lap: " + this.laps;
         this.checkString["text"] = "Check: " + this.checks;
+
+        // Save the position to currentGhost if last ghost time is greater than current time
+        if (time - this.lastGhostTime > 0) { // We have to write the condition this way because writing it normally doesn't work for some reason
+            // Update the time accordingly
+            this.currentGhost[time] = this.parent.kart.getLoc();
+
+            this.lastGhostTime = time;
+        }
+
+        // If we can, ask the parent to display a ghost model at the given coords
+        if (Object.keys(this.pastGhost).includes(time)) {
+            this.parent.displayGhostAt(this.pastGhost[time]);
+        }
     }
 
     /**
@@ -454,11 +670,51 @@ export class GUIController {
      * @param {*} laps 
      */
     updateStatus(checkIndex, laps) {
-        if (this.laps != laps) { // The Kart JUST completed a new lap, check if they beat the record
-            this.bestTime = Math.min(this.bestTime, this.timer.getTime());
+        if (laps > this.laps) { // The Kart JUST completed a new lap, check if they beat the record
+            if (this.timer.getTime() < this.bestTime) { // New PR in the gym
+                this.bestTime = this.timer.getTime();
+                
+                // We ALWAYS assume that beating the best time means you beat your past ghost
+                // This idea only works if we save bestTime over sessions in cookies or cache
+                this.pastGhost = this.currentGhost;
+
+                // Save the Best Time and Past Ghost to Cache / Memory and retrieve it on initGame
+                let kart = this.options.kart;
+                let world = this.options.world;
+                if (!Object.keys(this.memory).includes(kart)) {
+                    this.memory[kart] = {};
+                }
+                if (!Object.keys(this.memory[kart]).includes(world)) {
+                    this.memory[kart][world] = {}
+                }
+                this.memory[kart][world]["ghost"] = this.pastGhost;
+                this.memory[kart][world]["bestTime"] = this.bestTime;
+
+                this.saveMemory();
+            }
             this.timer.resetTime();
+
+            // Reset the Ghost Timer
+            this.currentGhost = {};
+            this.lastGhostTime = -1;
+
         }
         this.laps = laps;
         this.checks = checkIndex + 1;        
+    }
+
+
+    /**
+     * Save Memory to Cache
+     */
+    saveMemory() {
+        localStorage.setItem("memory", JSON.stringify(this.memory));
+    }
+
+    /**
+     * Load Memory from Cache
+     */
+    loadMemory() {
+        this.memory = JSON.parse(localStorage.getItem("memory")) || {};
     }
 }

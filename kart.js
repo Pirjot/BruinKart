@@ -8,7 +8,6 @@
 
 import {defs, tiny} from './examples/common.js';
 import {Body, Simulation} from './physics.js';
-import {Model} from './model.js';
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color} = tiny;
@@ -36,23 +35,34 @@ export class Kart {
      * Using the given game we can check all bodies that the
      * kart's body may collide with.
      * @param {BruinKart} game 
+     * @param {String} kartType BruinKart / Clown / Toad
+     * @param {String} worldType default / classic
      */
-    constructor(game, options={}) {
+    constructor(game, kartType="BruinKart", worldType="default") {
         this.game = game;
+
+        // Set the default position based on the world we are in
+        this.startingPosition = [112, 1, 128];
+        if (worldType == "classic") {
+            this.startingPosition = [-40, 1, 0];
+        }
         
-        // TODO: Provide ability to alter Kart default parameters through options
-        this.generateBody(options);
+        // Provide ability to alter Kart default parameters through options
+        this.generateBody(kartType);
 
         // Set default values for angles and movement parameters (acceleration, max_speed, etc.)
-        this.maxVelocityF = 10; // The max speed forward
-        this.maxVelocityB = -5; // The max speed backward
-        this.acceleration = .05; // Acceleration per dt forward
+        this.maxVelocityF = 15; // The max speed forward
+        this.maxVelocityB = -7; // The max speed backward
+        this.acceleration = .04; // Acceleration per dt forward
         this.slowDownSpeed = .01;
 
         // Angle Defaults
         this.maxDeltaAngle = Math.PI / 8; // The maximum movement that the kart can turn
         this.shortDeltaAngle = Math.PI / 128; // How much the kart can change its angle per frame
         this.slowDownAngle = Math.PI / 512;
+
+        // Then change the above values if based on the selected kartType
+        this.setParams(kartType);
 
         // Update params per frame
         this.angle = 0;
@@ -65,17 +75,70 @@ export class Kart {
             points: new defs.Cube(), 
             leeways: [1, 1, 1]
         }
+
+        // Position
+        this.lastCenter = null;
     }
 
-    generateBody(options={}) {
-        // Generate a body, TODO: do this using the options
-        let model = globalShapes.model;
-        let material = new Material(new defs.Phong_Shader(), {
-            color: hex_color("#888888"),
-            ambient: 1
-        });
+    /**
+     * Taking the kartType into account, set the relevant parameters.
+     * 
+     * @param {*} kartType 
+     */
+    setParams(kartType) {
+        if (kartType == "BruinKart") {
+            return;
+        }
+
+        switch (kartType) {
+            case "Clown":
+                this.maxVelocityF = 30;
+                this.maxVelocityB = -10;
+                this.acceleration = .02;
+
+                this.shortDeltaAngle = Math.PI / 700;
+                break;
+            case "Toad":
+                this.maxVelocityF = 10;
+                this.maxVelocityB = -3;
+                this.acceleration = .1;
+
+                this.shortDeltaAngle = Math.PI / 90;
+                break;
+            default:
+                return;
+        }
+
+        return;
+    }
+
+    /**
+     * Taking the kartType into account, load the corresponding model.
+     * 
+     * @param {String} kartType 
+     */
+    generateBody(kartType) {
+        // Generate a body accordingly
+        
+        // First set the defaults, then change if another option was chosen
+        let model = globalShapes.kart1;
+        let material = globalMaterials.kart1_texture;
+
+        switch (kartType) {
+            case "Clown":
+                model = globalShapes.kart2;
+                material = globalMaterials.kart2_texture;
+                break;
+            case "Toad":
+                model = globalShapes.kart3;
+                material = globalMaterials.kart3_texture;
+                break;
+            default:
+                break;
+        }
+
         let scale = vec3(1, 1, 1);
-        let location = Mat4.translation(112, 1, 128);
+        let location = Mat4.translation(...this.startingPosition);
         let velocity = vec3(0, 0, 0);
 
         this.body = new Body(model, material, scale);
@@ -116,6 +179,8 @@ export class Kart {
         
         // Apply emplace
         this.body.emplace(location, linear_velocity, 0);
+
+        this.lastCenter = this.body.center;
 
         // Handle collisions with other bodies in the game world (Maybe send the location and linear_velocity to the collisions?)
         this.handleCollisions(location);
@@ -228,5 +293,19 @@ export class Kart {
         drawn = Mat4.inverse(drawn);
 
         return drawn;
+    }
+
+    /**
+     * Return the current location and angle as a 4 x 1 array.
+     */
+    getLoc() {
+        if (!this.lastCenter) {
+            return null;
+        }
+        
+        let info = [...this.lastCenter];
+        info.push(this.angle);
+        
+        return info;
     }
 }

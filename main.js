@@ -3,25 +3,48 @@ import { Text_Line } from './examples/text-demo.js';
 import {Body, Simulation} from './physics.js';
 import {Kart} from './kart.js';
 import {World} from './world.js';
-import {Model} from './model.js';
-import {GUIController} from './controller.js';
+import {Kart1, StadiumLight, Tire, Kart2, Kart3} from './model.js';
 
 
 // Pull these names into this module's scope for convenience:
-const {vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_color} = tiny;
+const {vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color, Texture} = tiny;
+import {GUIController} from './controller.js';
+
+
 
 // Globally initialize the needed shapes and materials for use
 
 // Load all necessary shapes onto the GPU
 globalThis.globalShapes = {
+    axle: new defs.Cylindrical_Tube(5,100),
     cube: new defs.Cube(),
-    model: new Model('assets/kart.obj'),
+    tire: new Tire(),
+    kart1: new Kart1(),
+    kart2: new Kart2(),
+    kart3: new Kart3(),
+    stadium_light: new StadiumLight(),
     text: new Text_Line(40),
 }
 
 // Load all needed materials
 globalThis.globalMaterials = {
     default: new Material(new defs.Phong_Shader()),
+    kart1_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart1.png")
+    }),
+    kart2_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart2.png")
+    }),
+    kart3_texture: new Material(new defs.Textured_Phong(1), {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: .1, specularity: .1, texture: new Texture("assets/kart3.png")
+    }),
+    tire_texture:  new Material(new defs.Phong_Shader, {
+        color: color(0,0,0, 1),
+        ambient: 1, diffusivity: 1, specularity: 0.5, texture: new Texture('assets/tire.png')
+    }),
     text_mat: new Material(new defs.Textured_Phong(1), {
         ambient: 1, diffusivity: 0, specularity: 0,
         texture: new Texture("assets/text.png")
@@ -86,14 +109,17 @@ export class BruinKart extends Simulation {
          * kart's body and this invisible checkpoint (by not adding each checkpoint body
          * to this.bodies, they are not rendered and the collision for the kart is not applied).
          */
-        this.collider = {
-            intersect_test: Body.intersect_cube, 
-            points: new defs.Cube(), 
-        }
-        this.checkpoints = [];
-        this.world.initializeCheckpoints(this.checkpoints);
-        this.checkpointIndex = 0;
-        this.laps = 0;
+        this.setupCheckpoints = () => {
+            this.collider = {
+                intersect_test: Body.intersect_cube, 
+                points: new defs.Cube(), 
+            }
+            this.checkpoints = [];
+            this.world.initializeCheckpoints(this.checkpoints);
+            this.checkpointIndex = 0;
+            this.laps = 0;
+        };
+        this.setupCheckpoints();
 
 
         // We also have access to simulation time variables (check default Simulation Class)
@@ -126,16 +152,41 @@ export class BruinKart extends Simulation {
         // Load the GUI
         this.controller = new GUIController(this);
         this.initialized = false;
+
+        // NEW FEATURE: Initialize the Ghost variables
+        this.ghostPos = null;
     }
 
-    
+    /**
+     * Asynchronously load a world and return when it has been processed on screen.
+     * 
+     * 
+     * @param {*} worldName 
+     */
+    async loadWorld(worldName) {
+        // Clear all bodies relevant to current world
+        this.bodies.splice(1, this.bodies.length - 1);
+        this.ghostPos = null;
+
+        // Get the world
+        this.world = new World(worldName);
+
+        // Load the bodies and checkpoints
+        this.world.initializeBodies(this.bodies);
+        this.setupCheckpoints();
+
+        const delay = (ms = 500) => new Promise(callMeToResolve => setTimeout(callMeToResolve, ms));
+
+        // We don't have a way to actually measure how long it takes it to load the textures so we just guess it take 1/10 second atmost
+        return await delay(100);
+    }
 
     /**
      * Create the control_panel, (TODO: Fill in extra buttons if needed, otherwise
      * read from the keyboard manually using JS)
      */
     make_control_panel() {
-        // this.key_triggered_button("Default", ["b"], () => this.testFunc);
+        this.key_triggered_button("Clear Memory (PERMANENT!)", ["r"], () => confirm("Are you sure you would like to clear all your past best times?") ? localStorage.clear() : null);
         // super.make_control_panel();
     }
 
@@ -199,6 +250,7 @@ export class BruinKart extends Simulation {
          */
         function nextCam(currCam) {
             return currCam == "kartBack" ? "kartFront" : 
+                   currCam == "kartFront" ? "default" :
                                             "kartBack";
         }
 
@@ -277,6 +329,22 @@ export class BruinKart extends Simulation {
          * The GUI will handle moving through different "states" of the game.
          */
         this.controller.handle(context, program_state, this.currCamMatrix);
+
+        /**
+         * Ghost mode, simply draw a noncollidable shape at the position if
+         * it exists.
+         */
+        if (this.ghostPos) {
+            // Generate the model transform
+            let model_transform = Mat4.identity().times(
+                Mat4.translation(this.ghostPos[0], this.ghostPos[1], this.ghostPos[2])).times(
+                Mat4.rotation(this.ghostPos[3], 0, 1, 0)
+            );
+
+            // We grab the model to display directly from the current kart's body
+            this.kart.body.shape.draw(context, program_state, model_transform, this.kart.body.material);
+        }
+
     }
 
     /**
@@ -298,5 +366,15 @@ export class BruinKart extends Simulation {
                 this.currCamMatrix = this.initial_camera_location;
                 program_state.set_camera(this.initial_camera_location);
         }
+    }
+
+    /**
+     * Display a ghost at the given coordinates in display.
+     * 
+     * We simply set the parameters here, if they exist during a display
+     * call then they are displayed
+     */
+    displayGhostAt(coords) {
+        this.ghostPos = coords;
     }
 }
