@@ -300,7 +300,7 @@ export class Kart {
      */
     getLoc() {
         if (!this.lastCenter) {
-            return [999, 999, 999, 0];
+            return null;
         }
         
         let info = [...this.lastCenter];

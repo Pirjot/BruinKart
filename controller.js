@@ -7,10 +7,10 @@
  * @author Pirjot Atwal
  */
 
-import { tiny } from "./examples/common.js";
+import { tiny, defs } from "./examples/common.js";
 import { Kart } from "./kart.js";
 
-const { vec3, vec4, Mat4, Scene, Material, color, Light, unsafe3, hex_color } = tiny;
+const { vec3, vec4, Mat4, Scene, Material, Texture, color, Light, unsafe3, hex_color } = tiny;
 
 /**
  * A timer object that supports pause functionality.
@@ -322,39 +322,36 @@ export class GUIController {
         let shapes = [
             {
                 "name": "Background Cube",
-                "obj": this.createShapeObj(this.createTransformFunc([0, 0, -5], [1.8 * 2, 2, 1])) // 1.8 is the Aspect Ratio of the screen
-            },
-            {
-                "name": "Welcome Title",
-                "obj": this.createTextObj(this.createTransformFunc([-2, 1, -3.99], [.15, .15, 1]), "Welcome to BruinKart!")
+                "obj": this.createShapeObj(this.createTransformFunc([0, 0, -5], [1.8 * 2, 2, 1]), 
+                new Material(new defs.Textured_Phong(1), {color: hex_color("#000000"), ambient: 1.0, texture: new Texture("assets/title.png")})) // 1.8 is the Aspect Ratio of the screen
             },
             {
                 "name": "Play Option",
-                "obj": this.createTextObj(this.createTransformFunc([-2, .5, -3.99], [.1, .1, 1]), "Press P to Play")
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .6, -3.99], [.1, .1, 1]), "Press P to Play")
             },
             {
                 "name": "Kart Option",
-                "obj": this.createTextObj(this.createTransformFunc([-2, .1, -3.99], [.1, .1, 1]), "Press K to Switch Your Kart")
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .35, -3.99], [.1, .1, 1]), "Press K to Switch Your Kart")
             },
-            { // Index 4
+            { // Index 3
                 "name": "Kart String",
-                "obj": this.createTextObj(this.createTransformFunc([-2, -.1, -3.99], [.1, .1, 1]), "CURRENTKART")
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, .15, -3.99], [.1, .1, 1]), "CURRENTKART")
             },
             {
                 "name": "Map Option",
-                "obj": this.createTextObj(this.createTransformFunc([-2, -.5, -3.99], [.1, .1, 1]), "Press M to Switch Your Map")
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, -.1, -3.99], [.1, .1, 1]), "Press M to Switch Your Map")
             },
-            { // Index 6
+            { // Index 5
                 "name": "Map String",
-                "obj": this.createTextObj(this.createTransformFunc([-2, -.7, -3.99], [.1, .1, 1]), "CURRENTMAP")
+                "obj": this.createTextObj(this.createTransformFunc([-2.3, -.3, -3.99], [.1, .1, 1]), "CURRENTMAP")
             },
         ];
         this.buildShapes(shapes);
 
 
         // Select all labels that need to be updated by user choice (need to be set to the corresponding string)
-        this.currentKartString = shapes[4]["obj"];
-        this.currentMapString = shapes[6]["obj"];        
+        this.currentKartString = shapes[3]["obj"];
+        this.currentMapString = shapes[5]["obj"];        
 
 
         // Build all listeners for the Menu
@@ -620,7 +617,6 @@ export class GUIController {
             if (shape.text != undefined) {
                 shape["shape"].set_string(shape.text, context.context);
             }
-
             shape["shape"].draw(context, program_state, shape["transform"](cam_matrix), shape["material"]);
         }
     }
