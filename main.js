@@ -287,7 +287,8 @@ export class BruinKart extends Simulation {
          */
         function nextCam(currCam) {
             return currCam == "kartBack" ? "kartFront" : 
-                   currCam == "kartFront" ? "default" :
+                   currCam == "kartFront" ? "kartSeat" :
+                   currCam == "kartSeat" ? "default" :
                                             "kartBack";
         }
 
@@ -404,6 +405,10 @@ export class BruinKart extends Simulation {
             case "kartFront":
                 this.currCamMatrix = this.kart.getFrontCam();
                 program_state.set_camera(this.kart.getFrontCam());
+                break;
+            case "kartSeat":
+                this.currCamMatrix = this.kart.getSeatCam();
+                program_state.set_camera(this.kart.getSeatCam());
                 break;
             default: 
                 this.currCamMatrix = this.initial_camera_location;

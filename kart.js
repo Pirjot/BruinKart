@@ -40,6 +40,7 @@ export class Kart {
      */
     constructor(game, kartType="BruinKart", worldType="default") {
         this.game = game;
+        this.kartType = kartType;
 
         // Set the default position based on the world we are in
         this.startingPosition = [112, 1, 128];
@@ -289,6 +290,31 @@ export class Kart {
         let drawn = this.body.drawn_location;
 
         drawn = drawn.times(Mat4.translation(0, 0, 3));
+        drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
+        drawn = Mat4.inverse(drawn);
+
+        return drawn;
+    }
+
+    /**
+     * Return the seat cam for each kart
+     */
+    getSeatCam() {
+        let drawn = this.body.drawn_location;
+
+        switch(this.kartType) {
+            case "BruinKart":
+                drawn = drawn.times(Mat4.translation(0, .5, -2 + this.velocity / 10));
+                break;
+            case "Clown":
+                drawn = drawn.times(Mat4.translation(0, 1.8, -2 + this.velocity / 10));
+                break;
+            case "Toad":
+                drawn = drawn.times(Mat4.translation(0, 1.5, -1.5 + this.velocity / 10));
+
+                
+        }
+
         drawn = drawn.times(Mat4.rotation(Math.PI, 0, 1, 0));
         drawn = Mat4.inverse(drawn);
 
